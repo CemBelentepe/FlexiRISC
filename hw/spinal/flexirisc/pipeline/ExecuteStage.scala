@@ -118,11 +118,11 @@ case class ExecuteStage() extends Component {
   io.jump_enable := (io.control_signals.is_jump | (io.control_signals.is_branch & comparator.res))
   val alu_res = io.control_signals.alu_op.mux(
     0 -> add_res.asBits.resize(32 bits),
-    1 -> (alu_lhs.asBits |<< alu_rhs).asBits,
+    1 -> (alu_lhs.asBits |<< alu_rhs(4 downto 0)).asBits,
     2 -> comparator.lt.asBits(32 bits),
     3 -> comparator.ltu.asBits(32 bits),
     4 -> (alu_lhs ^ alu_rhs).asBits,
-    5 -> (io.control_signals.is_alt_op ? (alu_lhs.asSInt >> alu_rhs).asBits | (alu_lhs |>> alu_rhs).asBits),
+    5 -> (io.control_signals.is_alt_op ? (alu_lhs.asSInt >> alu_rhs(4 downto 0)).asBits | (alu_lhs |>> alu_rhs(4 downto 0)).asBits),
     6 -> (alu_lhs | alu_rhs).asBits,
     7 -> (alu_lhs & alu_rhs).asBits
   )
