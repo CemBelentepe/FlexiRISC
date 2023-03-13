@@ -10,6 +10,8 @@ case class FlexiRisc(initFile: String = null) extends Component {
   val io = new Bundle{
     val data_mem_addr = out UInt(32 bits)
     val data_mem_data = out Bits(32 bits)
+    val data_mem_mask = out Bits(4 bits)
+    val done = out Bool()
   }
 
   val core = new Core()
@@ -17,6 +19,8 @@ case class FlexiRisc(initFile: String = null) extends Component {
 
   io.data_mem_addr := core.io.data_mem.address
   io.data_mem_data := core.io.data_mem.payload
+  io.data_mem_mask := core.io.data_mem.mask
+  io.done := core.io.data_mem.address === U"32'h2010" && core.io.data_mem.mask.orR
 
   ram.io.port_a.address <> core.io.inst_mem.address(13 downto 2)
   ram.io.port_a.mask <> core.io.inst_mem.mask
@@ -39,16 +43,18 @@ object FlexiRisc extends App{
 
 object FlexiRiscTest {
   def main(args: Array[String]): Unit = {
-    val width = 32
-    val unitSize = 8
     SimConfig.withWave.compile {
-      val dut = new FlexiRisc("/home/cembelentepe/Documents/Repos/FlexiRISC/test/basic_test/basic_test.data")
+      val dut = new FlexiRisc("/home/cembelentepe/Documents/Repos/FlexiRISC/test/bubble_sort/bubble_sort.data")
       dut.io.simPublic()
       dut
     }.doSim { dut =>
       //Simulation code here
       dut.clockDomain.forkStimulus(10)
-      dut.clockDomain.waitSampling(200)
+      var done = dut.io.done.toBoolean
+      while(!done) {
+        done = dut.io.done.toBoolean
+        dut.clockDomain.waitRisingEdge()
+      }
     }
   }
 }

@@ -41,6 +41,8 @@ case class HazardUnit() extends Component {
     val wb_flush = out Bool()
   }
 
+  // TODO check valid_1d for if and mem, if they are false, try_flush id and wb
+
   // Stall on data hazard
   // if id-ex raw hazard, flush ex
   val ex_rd_x0 = io.ex_control_signals.rd === 0
@@ -62,6 +64,11 @@ case class HazardUnit() extends Component {
   val halt_ex = !io.ex_valid
   val halt_mem = !io.mem_valid
   val halt_wb = False
+
+  val flush_id = False
+  val flush_ex = False
+  val flush_mem = False
+  val flush_wb = False
 
   val branch_flush = io.take_branch
 
