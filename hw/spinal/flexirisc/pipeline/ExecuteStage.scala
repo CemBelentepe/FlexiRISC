@@ -91,8 +91,8 @@ case class ExecuteStage() extends Component {
 
   val adder = new CarrySelectAdder(32, 8)
   adder.io.lhs := alu_lhs
-  adder.io.rhs := (alu_rhs.asBits ^ B(32 bits, default -> io.control_signals.is_alt_op)).asUInt
-  adder.io.c_in := io.control_signals.is_alt_op
+  adder.io.rhs := (alu_rhs.asBits ^ B(32 bits, default -> io.control_signals.is_sub)).asUInt
+  adder.io.c_in := io.control_signals.is_sub
 
   val add_res = adder.io.res
 
@@ -122,7 +122,7 @@ case class ExecuteStage() extends Component {
     2 -> comparator.lt.asBits(32 bits),
     3 -> comparator.ltu.asBits(32 bits),
     4 -> (alu_lhs ^ alu_rhs).asBits,
-    5 -> (io.control_signals.is_alt_op ? (alu_lhs.asSInt >> alu_rhs(4 downto 0)).asBits | (alu_lhs |>> alu_rhs(4 downto 0)).asBits),
+    5 -> (io.control_signals.is_arth_shift ? (alu_lhs.asSInt >> alu_rhs(4 downto 0)).asBits | (alu_lhs |>> alu_rhs(4 downto 0)).asBits),
     6 -> (alu_lhs | alu_rhs).asBits,
     7 -> (alu_lhs & alu_rhs).asBits
   )

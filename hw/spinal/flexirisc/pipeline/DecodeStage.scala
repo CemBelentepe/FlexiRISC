@@ -25,7 +25,8 @@ case class ControlSignals() extends Bundle {
   val sel_add_lhs = SEL_LHS()
   val sel_add_rhs = SEL_RHS()
   val alu_op = Bits(3 bits)
-  val is_alt_op = Bool()
+  val is_arth_shift = Bool()
+  val is_sub = Bool()
   val sel_comp_rhs = SEL_RHS()
   val comp_op = Bits(3 bits)
   val is_jump = Bool()
@@ -227,6 +228,7 @@ case class DecodeStage() extends Component {
       io.control_signals.rs1 := rs1
       io.control_signals.rd := rd
       io.control_signals.alu_op := funct3
+      io.control_signals.is_arth_shift := funct7(5)
     }
 
     // OP
@@ -237,7 +239,8 @@ case class DecodeStage() extends Component {
       io.control_signals.sel_add_rhs := SEL_RHS.SRC2
       io.control_signals.sel_comp_rhs := SEL_RHS.SRC2
       io.control_signals.alu_op := funct3
-      io.control_signals.is_alt_op := funct7(5)
+      io.control_signals.is_arth_shift := funct7(5)
+      io.control_signals.is_sub := funct7(5)
     }
 
   }
@@ -258,7 +261,8 @@ object DecodeStage extends App {
     control.sel_alu_res := SEL_RES.ALU
     control.is_jump := False
     control.is_branch := False
-    control.is_alt_op := False
+    control.is_arth_shift := False
+    control.is_sub := False
     control.is_store := False
     control.is_load := False
     control.funct3 := 0
