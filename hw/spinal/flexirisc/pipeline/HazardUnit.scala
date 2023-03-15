@@ -44,7 +44,6 @@ case class HazardUnit() extends Component {
   // TODO check valid_1d for if and mem, if they are false, try_flush id and wb
 
   // Stall on data hazard
-  // if id-ex raw hazard, flush ex
   val ex_rd_x0 = io.ex_control_signals.rd === 0
   val raw_ex_src1 = io.id_control_signals.rs1 === io.ex_control_signals.rd && !ex_rd_x0
   val raw_ex_src2 = io.id_control_signals.rs2 === io.ex_control_signals.rd && !ex_rd_x0
@@ -53,11 +52,7 @@ case class HazardUnit() extends Component {
   val raw_mem_src1 = io.id_control_signals.rs1 === io.mem_control_signals.rd && !mem_rd_x0
   val raw_mem_src2 = io.id_control_signals.rs2 === io.mem_control_signals.rd && !mem_rd_x0
 
-  val wb_rd_x0 = io.wb_control_signals.rd === 0
-  val raw_wb_src1 = io.id_control_signals.rs1 === io.wb_control_signals.rd && !wb_rd_x0
-  val raw_wb_src2 = io.id_control_signals.rs2 === io.wb_control_signals.rd && !wb_rd_x0
-
-  val raw = (raw_ex_src1 | raw_ex_src2 | raw_mem_src1 | raw_mem_src2 | raw_wb_src1 | raw_wb_src2) & io.id_valid
+  val raw = (raw_ex_src1 | raw_ex_src2 | raw_mem_src1 | raw_mem_src2) & io.id_valid
 
   val halt_if = !io.if_valid
   val halt_id = !io.id_valid | raw
