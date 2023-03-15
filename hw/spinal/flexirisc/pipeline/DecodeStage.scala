@@ -235,6 +235,7 @@ case class DecodeStage() extends Component {
       io.control_signals.rs2 := rs2
       io.control_signals.rd := rd
       io.control_signals.sel_add_rhs := SEL_RHS.SRC2
+      io.control_signals.sel_comp_rhs := SEL_RHS.SRC2
       io.control_signals.alu_op := funct3
       io.control_signals.is_alt_op := funct7(5)
     }
