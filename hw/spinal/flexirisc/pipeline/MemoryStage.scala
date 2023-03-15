@@ -70,7 +70,16 @@ case class MemoryStage() extends Component {
   )
   io.stage_valid := io.control_signals.is_load ? io.data_mem.valid | True
   io.load_data := io.data_mem.response
-  io.data_mem.payload := io.src2
+
+  val b = io.src2.subdivideIn(8 bits)(0)
+  val h = io.src2.subdivideIn(16 bits)(0)
+
+  io.data_mem.payload := io.control_signals.funct3.mux(
+    0-> b ## b ## b ## b,
+    1 -> h ## h,
+    2 -> io.src2,
+    default -> B(0)
+  )
 
   io.result_data := io.ex_result_data
 }
