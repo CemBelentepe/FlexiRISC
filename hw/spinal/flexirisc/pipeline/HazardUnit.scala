@@ -60,11 +60,6 @@ case class HazardUnit() extends Component {
   val halt_mem = !io.mem_valid
   val halt_wb = False
 
-  val flush_id = False
-  val flush_ex = False
-  val flush_mem = False
-  val flush_wb = False
-
   val branch_flush = io.take_branch
 
   io.if_stall := False
