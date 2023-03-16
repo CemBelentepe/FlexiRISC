@@ -7,9 +7,11 @@ build:
 	$(CC32)-objcopy -O binary -j .init -j .text -j .rodata aes_test.elf aes_test.bin
 	../rom_generator aes_test.bin
 	cp aes_test.data ../memory_contents
+	$(CC32)-objdump -D aes_test.elf > aes_test.s
 
 multilib:
 	$(CC64)-gcc aes_test.c aes.c ../crt0.s $(CCFLAGS)
 	$(CC64)-objcopy -O binary -j .init -j .text -j .rodata aes_test.elf aes_test.bin
 	../rom_generator aes_test.bin
 	cp aes_test.data ../memory_contents
+	$(CC64)-objdump -D aes_test.elf > aes_test.s
