@@ -10,11 +10,13 @@ import scala.language.postfixOps
 case class HazardUnit() extends Component {
   val io = new Bundle {
     val if_valid = in Bool()
-    val id_valid = in Bool()
+    val id1_stall_if = in Bool()
+    val id1_valid = in Bool()
+    val id2_valid = in Bool()
     val ex_valid = in Bool()
     val mem_valid = in Bool()
 
-    val id_control_signals = in(ControlSignals())
+    val id2_control_signals = in(ControlSignals())
     val ex_control_signals = in(ControlSignals())
     val mem_control_signals = in(ControlSignals())
     val wb_control_signals = in(ControlSignals())
@@ -28,8 +30,11 @@ case class HazardUnit() extends Component {
 
     val if_stall = out Bool()
 
-    val id_stall = out Bool()
-    val id_flush = out Bool()
+    val id1_stall = out Bool()
+    val id1_flush = out Bool()
+
+    val id2_stall = out Bool()
+    val id2_flush = out Bool()
 
     val ex_stall = out Bool()
     val ex_flush = out Bool()
@@ -45,17 +50,18 @@ case class HazardUnit() extends Component {
 
   // Stall on data hazard
   val ex_rd_x0 = io.ex_control_signals.rd === 0
-  val raw_ex_src1 = io.id_control_signals.rs1 === io.ex_control_signals.rd && !ex_rd_x0
-  val raw_ex_src2 = io.id_control_signals.rs2 === io.ex_control_signals.rd && !ex_rd_x0
+  val raw_ex_src1 = io.id2_control_signals.rs1 === io.ex_control_signals.rd && !ex_rd_x0
+  val raw_ex_src2 = io.id2_control_signals.rs2 === io.ex_control_signals.rd && !ex_rd_x0
 
   val mem_rd_x0 = io.mem_control_signals.rd === 0
-  val raw_mem_src1 = io.id_control_signals.rs1 === io.mem_control_signals.rd && !mem_rd_x0
-  val raw_mem_src2 = io.id_control_signals.rs2 === io.mem_control_signals.rd && !mem_rd_x0
+  val raw_mem_src1 = io.id2_control_signals.rs1 === io.mem_control_signals.rd && !mem_rd_x0
+  val raw_mem_src2 = io.id2_control_signals.rs2 === io.mem_control_signals.rd && !mem_rd_x0
 
-  val raw = (raw_ex_src1 | raw_ex_src2 | raw_mem_src1 | raw_mem_src2) & io.id_valid
+  val raw = (raw_ex_src1 | raw_ex_src2 | raw_mem_src1 | raw_mem_src2) & io.id2_valid
 
-  val halt_if = !io.if_valid
-  val halt_id = !io.id_valid | raw
+  val halt_if = !io.if_valid | io.id1_stall_if
+  val halt_id1 = !io.id2_valid
+  val halt_id2 = !io.id2_valid | raw
   val halt_ex = !io.ex_valid
   val halt_mem = !io.mem_valid
   val halt_wb = False
@@ -64,8 +70,11 @@ case class HazardUnit() extends Component {
 
   io.if_stall := False
 
-  io.id_stall := False
-  io.id_flush := False
+  io.id1_stall := False
+  io.id1_flush := False
+
+  io.id2_stall := False
+  io.id2_flush := False
 
   io.ex_stall := False
   io.ex_flush := False
@@ -78,30 +87,35 @@ case class HazardUnit() extends Component {
 
   when(halt_wb) {
     io.if_stall := True
-    io.id_stall := True
+    io.id1_stall := True
+    io.id2_stall := True
     io.ex_stall := True
     io.mem_stall := True
     io.wb_stall := True
   }.elsewhen(halt_mem) {
     io.if_stall := True
-    io.id_stall := True
+    io.id1_stall := True
+    io.id2_stall := True
     io.ex_stall := True
     io.mem_stall := True
     io.wb_flush := True
   }.elsewhen(halt_ex) {
     io.if_stall := True
-    io.id_stall := True
+    io.id1_stall := True
+    io.id2_stall := True
     io.ex_stall := True
     io.mem_flush := io.mem_valid
     when(!io.mem_flush) {
       io.wb_flush := True
     }
   }.elsewhen(branch_flush){
-    io.id_flush := True
+    io.id1_flush := True
+    io.id2_flush := True
     io.ex_flush := True
-  }.elsewhen(halt_id) {
+  }.elsewhen(halt_id2) {
     io.if_stall := True
-    io.id_stall := True
+    io.id1_stall := True
+    io.id2_stall := True
     io.ex_flush := io.ex_valid & !io.take_branch
     when(!io.ex_flush){
       io.mem_flush := io.mem_valid
@@ -109,15 +123,31 @@ case class HazardUnit() extends Component {
         io.wb_flush := True
       }
     }
-  }.elsewhen(halt_if) {
+  }.elsewhen(halt_id1) {
     io.if_stall := True
-    io.id_flush := io.id_valid
-    when(!io.id_flush){
+    io.id1_stall := True
+    io.id2_flush := io.id2_valid
+    when(!io.id2_flush){
       io.ex_flush := io.ex_valid & !io.take_branch
       when(!io.ex_flush) {
         io.mem_flush := io.mem_valid
         when(!io.mem_flush) {
           io.wb_flush := True
+        }
+      }
+    }
+  }.elsewhen(halt_if) {
+    io.if_stall := True
+    io.id1_flush := io.id1_valid
+    when(!io.id1_flush){
+      io.id2_flush := io.id2_valid
+      when(!io.id2_flush) {
+        io.ex_flush := io.ex_valid & !io.take_branch
+        when(!io.ex_flush) {
+          io.mem_flush := io.mem_valid
+          when(!io.mem_flush) {
+            io.wb_flush := True
+          }
         }
       }
     }

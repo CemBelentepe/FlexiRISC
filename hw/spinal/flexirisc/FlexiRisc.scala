@@ -46,7 +46,7 @@ object FlexiRisc extends App{
 object FlexiRiscTest {
   def main(args: Array[String]): Unit = {
     SimConfig.withWave.compile {
-      val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/aes/aes_test.data")
+      val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/muldiv/muldiv.data")
       dut.io.simPublic()
       dut
     }.doSim { dut =>

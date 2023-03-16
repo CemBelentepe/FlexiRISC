@@ -45,12 +45,12 @@ case class IdEx() extends Component {
     val ex_stall = in Bool()
     val ex_flush = in Bool()
 
-    val id_control_signals = in(ControlSignals())
-    val id_src1 = in Bits(32 bits)
-    val id_src2 = in Bits(32 bits)
-    val id_immediate = in Bits(32 bits)
-    val id_pc = in UInt(32 bits)
-    val id_pc_next_seq = in UInt(32 bits)
+    val id2_control_signals = in(ControlSignals())
+    val id2_src1 = in Bits(32 bits)
+    val id2_src2 = in Bits(32 bits)
+    val id2_immediate = in Bits(32 bits)
+    val id2_pc = in UInt(32 bits)
+    val id2_pc_next_seq = in UInt(32 bits)
 
     val ex_control_signals = out(ControlSignals())
     val ex_src1 = out Bits (32 bits)
@@ -75,12 +75,12 @@ case class IdEx() extends Component {
     pc := 0
     pc_next_seq := 0
   }.elsewhen(!io.ex_stall){
-    control_signals := io.id_control_signals
-    src1 := io.id_src1
-    src2 := io.id_src2
-    immediate := io.id_immediate
-    pc := io.id_pc
-    pc_next_seq := io.id_pc_next_seq
+    control_signals := io.id2_control_signals
+    src1 := io.id2_src1
+    src2 := io.id2_src2
+    immediate := io.id2_immediate
+    pc := io.id2_pc
+    pc_next_seq := io.id2_pc_next_seq
   }
 
   io.ex_control_signals := control_signals
@@ -93,7 +93,12 @@ case class IdEx() extends Component {
 
 case class DecodeStage() extends Component {
   val io = new Bundle{
-    val instruction = in Bits(32 bits)
+    val opcode = in(OPCODE())
+    val rs1 = in UInt(5 bits)
+    val rs2 = in UInt(5 bits)
+    val rd = in UInt(5 bits)
+    val funct3 = in Bits(3 bits)
+    val funct7_5 = in Bool()
 
     val wb_rd = in UInt(5 bits)
     val wb_data = in Bits(32 bits)
@@ -102,145 +107,84 @@ case class DecodeStage() extends Component {
 
     val src1 = out Bits(32 bits)
     val src2 = out Bits(32 bits)
-    val immediate = out Bits(32 bits)
   }
 
   val regFile = new RegFile()
-  regFile.io.rs1 := io.control_signals.rs1
-  regFile.io.rs2 := io.control_signals.rs2
+  regFile.io.rs1 := io.rs1
+  regFile.io.rs2 := io.rs2
   regFile.io.rd := io.wb_rd
   io.src1 := regFile.io.src1
   io.src2 := regFile.io.src2
   regFile.io.write_data := io.wb_data
 
-  val i_imm = B(32 bits,
-    (31 downto 11) -> io.instruction(31),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(24 downto 21),
-    0 -> io.instruction(20)
-  )
 
-  val s_imm = B(32 bits,
-    (31 downto 11) -> io.instruction(31),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(11 downto 8),
-    0 -> io.instruction(7)
-  )
-
-  val b_imm = B(32 bits,
-    (31 downto 12) -> io.instruction(31),
-    11 -> io.instruction(7),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(11 downto 8),
-    0 -> False
-  )
-
-  val u_imm = B(32 bits,
-    (31 downto 12) -> io.instruction(31 downto 12),
-    (11 downto 0) -> False
-  )
-
-  val j_imm = B(32 bits,
-    (31 downto 20) -> io.instruction(31),
-    (19 downto 12) -> io.instruction(19 downto 12),
-    11 -> io.instruction(20),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(24 downto 21),
-    0 -> False
-  )
-
-  val funct7 = io.instruction(31 downto 25)
-  val rs2 = io.instruction(24 downto 20).asUInt
-  val rs1 = io.instruction(19 downto 15).asUInt
-  val funct3 = io.instruction(14 downto 12)
-  val rd = io.instruction(11 downto 7).asUInt
-  val opcode = io.instruction(6 downto 2)
-
-  io.immediate := 0
   io.control_signals := DecodeStage.default_control()
 
-  switch(opcode){
-    // LUI
-    is(B"5'b01101"){
-      io.immediate := u_imm
-      io.control_signals.rd := rd
+  switch(io.opcode){
+    is(OPCODE.LUI){
+      io.control_signals.rd := io.rd
       io.control_signals.sel_add_lhs := SEL_LHS.SRC1
     }
 
-    // AUIPC
-    is(B"5'b00101"){
-      io.immediate := u_imm
-      io.control_signals.rd := rd
+    is(OPCODE.AUIPC){
+      io.control_signals.rd := io.rd
       io.control_signals.sel_add_lhs := SEL_LHS.PC
     }
 
-    // JAL
-    is(B"5'b11011"){
-      io.immediate := j_imm
-      io.control_signals.rd := rd
+    is(OPCODE.JAL){
+      io.control_signals.rd := io.rd
       io.control_signals.sel_add_lhs := SEL_LHS.PC
       io.control_signals.is_jump := True
       io.control_signals.sel_alu_res := SEL_RES.PC
     }
 
-    // JALR
-    is(B"5'b11001") {
-      io.immediate := i_imm
-      io.control_signals.rs1 := rs1
-      io.control_signals.rd := rd
+    is(OPCODE.JALR) {
+      io.control_signals.rs1 := io.rs1
+      io.control_signals.rd := io.rd
       io.control_signals.sel_add_lhs := SEL_LHS.SRC1
       io.control_signals.is_jump := True
       io.control_signals.sel_alu_res := SEL_RES.PC
     }
 
-    // BRANCH
-    is(B"5'b11000") {
-      io.immediate := b_imm
-      io.control_signals.rs1 := rs1
-      io.control_signals.rs2 := rs2
+    is(OPCODE.BRANCH) {
+      io.control_signals.rs1 := io.rs1
+      io.control_signals.rs2 := io.rs2
       io.control_signals.sel_add_lhs := SEL_LHS.PC
       io.control_signals.sel_comp_rhs := SEL_RHS.SRC2
       io.control_signals.is_branch := True
-      io.control_signals.comp_op := funct3
+      io.control_signals.comp_op := io.funct3
     }
 
-    // LOAD
-    is(B"5'b00000") {
-      io.immediate := i_imm
-      io.control_signals.rs1 := rs1
-      io.control_signals.rd := rd
+    is(OPCODE.LOAD) {
+      io.control_signals.rs1 := io.rs1
+      io.control_signals.rd := io.rd
       io.control_signals.is_load := True
-      io.control_signals.funct3 := funct3
+      io.control_signals.funct3 := io.funct3
     }
 
-    // Store
-    is(B"5'b01000") {
-      io.immediate := s_imm
-      io.control_signals.rs1 := rs1
-      io.control_signals.rs2 := rs2
+    is(OPCODE.STORE) {
+      io.control_signals.rs1 := io.rs1
+      io.control_signals.rs2 := io.rs2
       io.control_signals.is_store := True
-      io.control_signals.funct3 := funct3
+      io.control_signals.funct3 := io.funct3
     }
 
-    // OP-IMM
-    is(B"5'b00100") {
-      io.immediate := i_imm
-      io.control_signals.rs1 := rs1
-      io.control_signals.rd := rd
-      io.control_signals.alu_op := funct3
-      io.control_signals.is_arth_shift := funct7(5)
+    is(OPCODE.OP_IMM) {
+      io.control_signals.rs1 := io.rs1
+      io.control_signals.rd := io.rd
+      io.control_signals.alu_op := io.funct3
+      io.control_signals.is_arth_shift := io.funct7_5
     }
 
-    // OP
-    is(B"5'b01100") {
-      io.control_signals.rs1 := rs1
-      io.control_signals.rs2 := rs2
-      io.control_signals.rd := rd
+    is(OPCODE.OP) {
+      io.control_signals.rs1 := io.rs1
+      io.control_signals.rs2 := io.rs2
+      io.control_signals.rd := io.rd
       io.control_signals.sel_add_rhs := SEL_RHS.SRC2
       io.control_signals.sel_comp_rhs := SEL_RHS.SRC2
-      io.control_signals.alu_op := funct3
-      io.control_signals.is_arth_shift := funct7(5)
-      io.control_signals.is_sub := funct7(5)
+      io.control_signals.alu_op := io.funct3
+      io.control_signals.is_arth_shift := io.funct7_5
+      io.control_signals.is_sub := io.funct7_5
     }
 
   }

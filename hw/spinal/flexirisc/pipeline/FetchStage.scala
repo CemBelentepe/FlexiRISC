@@ -7,37 +7,37 @@ import spinal.lib._
 import scala.language.postfixOps
 
 
-case class IfId() extends Component {
+case class IfId1() extends Component {
   val io = new Bundle {
-    val id_stall = in Bool()
-    val id_flush = in Bool()
+    val id1_stall = in Bool()
+    val id1_flush = in Bool()
 
     val if_instruction = in Bits(32 bits)
     val if_pc = in UInt (32 bits)
     val if_pc_next_seq = in UInt(32 bits)
 
-    val id_instruction = out Bits(32 bits)
-    val id_pc = out UInt(32 bits)
-    val id_pc_next_seq = out UInt(32 bits)
+    val id1_instruction = out Bits(32 bits)
+    val id1_pc = out UInt(32 bits)
+    val id1_pc_next_seq = out UInt(32 bits)
   }
 
   val instruction = Reg(Bits(32 bits)) init(B"32'h00000013")
   val pc = Reg(UInt(32 bits)) init(0)
   val pc_next_seq = Reg(UInt(32 bits)) init(0)
 
-  when(io.id_flush){
+  when(io.id1_flush){
     instruction := B"32'h00000013"
     pc := 0
     pc_next_seq := 0
-  }.elsewhen(!io.id_stall){
+  }.elsewhen(!io.id1_stall){
     instruction := io.if_instruction
     pc := io.if_pc
     pc_next_seq := io.if_pc_next_seq
   }
 
-  io.id_instruction := instruction
-  io.id_pc := pc
-  io.id_pc_next_seq := pc_next_seq
+  io.id1_instruction := instruction
+  io.id1_pc := pc
+  io.id1_pc_next_seq := pc_next_seq
 }
 
 case class FetchStage() extends Component {
