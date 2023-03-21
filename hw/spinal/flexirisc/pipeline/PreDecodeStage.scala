@@ -17,35 +17,35 @@ case class Id1Id2() extends Component {
     val id2_flush = in Bool ()
 
     val id1_opcode = in(OPCODE())
-    val id1_rs1 = in UInt(5 bits)
-    val id1_rs2 = in UInt(5 bits)
-    val id1_rd = in UInt(5 bits)
-    val id1_funct3 = in Bits(3 bits)
-    val id1_funct7_5 = in Bool()
-    val id1_immediate = in Bits(32 bits)
-    val id1_pc = in UInt(32 bits)
-    val id1_pc_next_seq = in UInt(32 bits)
+    val id1_rs1 = in UInt (5 bits)
+    val id1_rs2 = in UInt (5 bits)
+    val id1_rd = in UInt (5 bits)
+    val id1_funct3 = in Bits (3 bits)
+    val id1_funct7_5 = in Bool ()
+    val id1_immediate = in Bits (32 bits)
+    val id1_pc = in UInt (32 bits)
+    val id1_pc_next_seq = in UInt (32 bits)
 
     val id2_opcode = out(OPCODE())
-    val id2_rs1 = out UInt(5 bits)
-    val id2_rs2 = out UInt(5 bits)
-    val id2_rd = out UInt(5 bits)
-    val id2_funct3 = out Bits(3 bits)
-    val id2_funct7_5 = out Bool()
-    val id2_immediate = out Bits(32 bits)
-    val id2_pc = out UInt(32 bits)
-    val id2_pc_next_seq = out UInt(32 bits)
+    val id2_rs1 = out UInt (5 bits)
+    val id2_rs2 = out UInt (5 bits)
+    val id2_rd = out UInt (5 bits)
+    val id2_funct3 = out Bits (3 bits)
+    val id2_funct7_5 = out Bool ()
+    val id2_immediate = out Bits (32 bits)
+    val id2_pc = out UInt (32 bits)
+    val id2_pc_next_seq = out UInt (32 bits)
   }
 
-  val opcode = Reg(OPCODE()) init(OPCODE.OP)
+  val opcode = Reg(OPCODE()) init (OPCODE.OP)
   val rs1 = Reg(UInt(5 bits)) init (0)
-  val rs2 = Reg(UInt(5 bits)) init(0)
-  val rd = Reg(UInt(5 bits)) init(0)
-  val funct3 = Reg(Bits(3 bits)) init(0)
-  val funct7_5 = Reg(Bool()) init(False)
-  val immediate = Reg(Bits(32 bits)) init(0)
-  val pc = Reg(UInt(32 bits)) init(0)
-  val pc_next_seq = Reg(UInt(32 bits)) init(0)
+  val rs2 = Reg(UInt(5 bits)) init (0)
+  val rd = Reg(UInt(5 bits)) init (0)
+  val funct3 = Reg(Bits(3 bits)) init (0)
+  val funct7_5 = Reg(Bool()) init (False)
+  val immediate = Reg(Bits(32 bits)) init (0)
+  val pc = Reg(UInt(32 bits)) init (0)
+  val pc_next_seq = Reg(UInt(32 bits)) init (0)
 
   when(io.id2_flush) {
     opcode := OPCODE.OP
@@ -85,52 +85,18 @@ case class PreDecodeStage() extends Component {
     val instruction = in Bits (32 bits)
 
     val opcode = out(OPCODE())
-    val rs1 = out UInt (5 bits)
-    val rs2 = out UInt (5 bits)
-    val rd = out UInt (5 bits)
-    val funct3 = out Bits (3 bits)
-    val funct7_5 = out Bool ()
-    val immediate = out Bits (32 bits)
+    val rs1 = out UInt(5 bits)
+    val rs2 = out UInt(5 bits)
+    val rd = out UInt(5 bits)
+    val funct3 = out Bits(3 bits)
+    val funct7_5 = out Bool()
+    val immediate = out Bits(32 bits)
 
     val stall_if = out Bool()
   }
 
-  val i_imm = B(
-    32 bits,
-    (31 downto 11) -> io.instruction(31),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(24 downto 21),
-    0 -> io.instruction(20)
-  )
-
-  val s_imm = B(
-    32 bits,
-    (31 downto 11) -> io.instruction(31),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(11 downto 8),
-    0 -> io.instruction(7)
-  )
-
-  val b_imm = B(
-    32 bits,
-    (31 downto 12) -> io.instruction(31),
-    11 -> io.instruction(7),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(11 downto 8),
-    0 -> False
-  )
-
-  val u_imm = B(32 bits, (31 downto 12) -> io.instruction(31 downto 12), (11 downto 0) -> False)
-
-  val j_imm = B(
-    32 bits,
-    (31 downto 20) -> io.instruction(31),
-    (19 downto 12) -> io.instruction(19 downto 12),
-    11 -> io.instruction(20),
-    (10 downto 5) -> io.instruction(30 downto 25),
-    (4 downto 1) -> io.instruction(24 downto 21),
-    0 -> False
-  )
+  val immediateDecoder = new ImmediateDecoder
+  immediateDecoder.io.instruction := io.instruction
 
   when(io.instruction(1 downto 0) === B"2'b11") {
     io.opcode.asData := io
@@ -151,13 +117,13 @@ case class PreDecodeStage() extends Component {
     io.immediate := io
       .instruction(6 downto 2)
       .mux(
-        B"5'b01101" -> u_imm,
-        B"5'b00101" -> u_imm,
-        B"5'b11011" -> j_imm,
-        B"5'b11000" -> b_imm,
-        B"5'b00000" -> i_imm,
-        B"5'b01000" -> s_imm,
-        B"5'b00100" -> i_imm,
+        B"5'b01101" -> immediateDecoder.io.u_imm,
+        B"5'b00101" -> immediateDecoder.io.u_imm,
+        B"5'b11011" -> immediateDecoder.io.j_imm,
+        B"5'b11000" -> immediateDecoder.io.b_imm,
+        B"5'b00000" -> immediateDecoder.io.i_imm,
+        B"5'b01000" -> immediateDecoder.io.s_imm,
+        B"5'b00100" -> immediateDecoder.io.i_imm,
         default -> B(0)
       )
 
@@ -181,6 +147,55 @@ case class PreDecodeStage() extends Component {
     io.stall_if := False
   }
 
+}
+
+case class ImmediateDecoder() extends Component {
+  val io = new Bundle {
+    val instruction = in Bits(32 bits)
+
+    val i_imm = out Bits(32 bits)
+    val s_imm = out Bits(32 bits)
+    val b_imm = out Bits(32 bits)
+    val u_imm = out Bits(32 bits)
+    val j_imm = out Bits(32 bits)
+  }
+
+  io.i_imm := B(
+    32 bits,
+    (31 downto 11) -> io.instruction(31),
+    (10 downto 5) -> io.instruction(30 downto 25),
+    (4 downto 1) -> io.instruction(24 downto 21),
+    0 -> io.instruction(20)
+  )
+
+  io.s_imm := B(
+    32 bits,
+    (31 downto 11) -> io.instruction(31),
+    (10 downto 5) -> io.instruction(30 downto 25),
+    (4 downto 1) -> io.instruction(11 downto 8),
+    0 -> io.instruction(7)
+  )
+
+  io.b_imm := B(
+    32 bits,
+    (31 downto 12) -> io.instruction(31),
+    11 -> io.instruction(7),
+    (10 downto 5) -> io.instruction(30 downto 25),
+    (4 downto 1) -> io.instruction(11 downto 8),
+    0 -> False
+  )
+
+  io.u_imm := B(32 bits, (31 downto 12) -> io.instruction(31 downto 12), (11 downto 0) -> False)
+
+  io.j_imm := B(
+    32 bits,
+    (31 downto 20) -> io.instruction(31),
+    (19 downto 12) -> io.instruction(19 downto 12),
+    11 -> io.instruction(20),
+    (10 downto 5) -> io.instruction(30 downto 25),
+    (4 downto 1) -> io.instruction(24 downto 21),
+    0 -> False
+  )
 }
 
 object PreDecodeStage extends App {
