@@ -103,9 +103,9 @@ object MultiplierTest {
       .doSim { dut =>
         // Simulation code here
         var n_passed = 0
-        val n_total = 10
+        val n_total = 100000
         for (i <- 0 until n_total) {
-          val a, b = Random.nextLong() & ((1L << 32) - 1)
+          val a, b = Random.nextLong().toBigInt & ((1L << 32) - 1)
           dut.io.lhs #= a
           dut.io.rhs #= b
           dut.io.mode #= MUL_MODE.MUL
