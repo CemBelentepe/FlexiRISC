@@ -1,6 +1,6 @@
 package flexirisc.pipeline
 
-import flexirisc.{CarrySelectAdder, Config, Multiplier}
+import flexirisc.{CarrySelectAdder, Config, Divider, Multiplier}
 import spinal.core._
 import spinal.core.internals.Operator
 import spinal.lib._
@@ -116,11 +116,10 @@ case class ExecuteStage() extends Component {
   }
 
   val muldiv = new Area {
-    val is_mul = io.control_signals.alu_op(2)
+    val is_mul = ~io.control_signals.alu_op(2)
 
     val is_neg_lhs = src1.msb
     val is_neg_rhs = src2.msb
-    val is_neg_res = False
     val sgn_lhs = is_neg_lhs ? (-src1.asSInt).asUInt | src1.asUInt
     val sgn_rhs = is_neg_rhs ? (-src2.asSInt).asUInt | src2.asUInt
 
@@ -128,6 +127,7 @@ case class ExecuteStage() extends Component {
       val mulUnit = new Multiplier(32)
       val mul_res = Bits(32 bits)
       val res_h = mulUnit.io.result(0)(63 downto 32).asSInt
+      val is_neg_res = False
       val neg_res_h = (is_neg_res ? -res_h | res_h).asBits
 
       switch(io.control_signals.alu_op(1 downto 0)) {
@@ -157,9 +157,33 @@ case class ExecuteStage() extends Component {
 
     }
 
-    // TODO Div Unit
     val divArea = new Area {
-      val div_res = B(0, 32 bits)
+      val divUnit = new Divider(32)
+      val div_res = Bits(32 bits)
+
+      switch(io.control_signals.alu_op(1 downto 0)){
+        is(0){
+          divUnit.io.lhs := sgn_lhs
+          divUnit.io.rhs := sgn_rhs
+          div_res := (is_neg_lhs ^ is_neg_rhs) ? (-divUnit.io.div.asSInt).asBits | divUnit.io.div
+        }
+        is(1) {
+          divUnit.io.lhs := src1.asUInt
+          divUnit.io.rhs := src2.asUInt
+          div_res := divUnit.io.div
+        }
+        is(2) {
+          divUnit.io.lhs := sgn_lhs
+          divUnit.io.rhs := sgn_rhs
+          div_res := (is_neg_lhs ^ is_neg_rhs) ? (-divUnit.io.rem.asSInt).asBits | divUnit.io.rem
+        }
+        is(3) {
+          divUnit.io.lhs := src1.asUInt
+          divUnit.io.rhs := src2.asUInt
+          div_res := divUnit.io.rem
+        }
+      }
+
     }
 
     val res = is_mul ? mulArea.mul_res | divArea.div_res

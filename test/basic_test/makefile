@@ -1,7 +1,7 @@
 CC32=riscv32-unknown-elf
 CC64=riscv64-unknown-elf
 TEST_NAME=basic_test
-CCFLAGS=-march=rv32i -mabi=ilp32 -O3 -T ../linksc.ld -nostartfiles -ffunction-sections -fdata-sections -Wl,--gc-sections -o $(TEST_NAME).elf
+CCFLAGS=-march=rv32im -mabi=ilp32 -O3 -T ../linksc.ld -nostartfiles -ffunction-sections -fdata-sections -Wl,--gc-sections -o $(TEST_NAME).elf
 	
 build:
 	$(CC32)-gcc *.c ../crt0.s $(CCFLAGS)

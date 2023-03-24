@@ -23,15 +23,7 @@ int main()
     
     int *addr_ptr = DEBUG_IF_ADDR;
 
-    if(memcmp(mul_res,c,80) == 0 && memcmp(div_res,a,40) == 0)
-    {
-        //success
-        *addr_ptr = 1;
-    }
-    else
-    {
-        //failure
-        *addr_ptr = 0;
-    }
+    *addr_ptr = ((memcmp(mul_res,c,80) == 0) << 1) | (memcmp(div_res,a,40) == 0);
+
     return 0;
 }
