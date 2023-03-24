@@ -21,7 +21,7 @@ case class Id1Id2() extends Component {
     val id1_rs2 = in UInt (5 bits)
     val id1_rd = in UInt (5 bits)
     val id1_funct3 = in Bits (3 bits)
-    val id1_funct7_5 = in Bool ()
+    val id1_funct7 = in Bits (7 bits)
     val id1_immediate = in Bits (32 bits)
     val id1_pc = in UInt (32 bits)
     val id1_pc_next_seq = in UInt (32 bits)
@@ -31,7 +31,7 @@ case class Id1Id2() extends Component {
     val id2_rs2 = out UInt (5 bits)
     val id2_rd = out UInt (5 bits)
     val id2_funct3 = out Bits (3 bits)
-    val id2_funct7_5 = out Bool ()
+    val id2_funct7 = out Bits (7 bits)
     val id2_immediate = out Bits (32 bits)
     val id2_pc = out UInt (32 bits)
     val id2_pc_next_seq = out UInt (32 bits)
@@ -42,7 +42,7 @@ case class Id1Id2() extends Component {
   val rs2 = Reg(UInt(5 bits)) init (0)
   val rd = Reg(UInt(5 bits)) init (0)
   val funct3 = Reg(Bits(3 bits)) init (0)
-  val funct7_5 = Reg(Bool()) init (False)
+  val funct7 = Reg(Bits(7 bits)) init (0)
   val immediate = Reg(Bits(32 bits)) init (0)
   val pc = Reg(UInt(32 bits)) init (0)
   val pc_next_seq = Reg(UInt(32 bits)) init (0)
@@ -53,7 +53,7 @@ case class Id1Id2() extends Component {
     rs2 := 0
     rd := 0
     funct3 := 0
-    funct7_5 := False
+    funct7 := 0
     immediate := 0
     pc := 0
     pc_next_seq := 0
@@ -63,7 +63,7 @@ case class Id1Id2() extends Component {
     rs2 := io.id1_rs2
     rd := io.id1_rd
     funct3 := io.id1_funct3
-    funct7_5 := io.id1_funct7_5
+    funct7 := io.id1_funct7
     immediate := io.id1_immediate
     pc := io.id1_pc
     pc_next_seq := io.id1_pc_next_seq
@@ -74,7 +74,7 @@ case class Id1Id2() extends Component {
   io.id2_rs2 := rs2
   io.id2_rd := rd
   io.id2_funct3 := funct3
-  io.id2_funct7_5 := funct7_5
+  io.id2_funct7 := funct7
   io.id2_immediate := immediate
   io.id2_pc := pc
   io.id2_pc_next_seq := pc_next_seq
@@ -89,7 +89,7 @@ case class PreDecodeStage() extends Component {
     val rs2 = out UInt(5 bits)
     val rd = out UInt(5 bits)
     val funct3 = out Bits(3 bits)
-    val funct7_5 = out Bool()
+    val funct7 = out Bits(7 bits)
     val immediate = out Bits(32 bits)
 
     val stall_if = out Bool()
@@ -131,7 +131,7 @@ case class PreDecodeStage() extends Component {
     io.rs2 := io.instruction(24 downto 20).asUInt
     io.rd := io.instruction(11 downto 7).asUInt
     io.funct3 := io.instruction(14 downto 12)
-    io.funct7_5 := io.instruction(31 downto 25)(5)
+    io.funct7 := io.instruction(31 downto 25)
     io.stall_if := False
   }.otherwise {
     // TODO Decode the RV32c here
@@ -142,7 +142,7 @@ case class PreDecodeStage() extends Component {
     io.rs2 := 0
     io.rd := 0
     io.funct3 := 0
-    io.funct7_5 := False
+    io.funct7 := 0
     // TODO stall_if is dependent on the step counter
     io.stall_if := False
   }
