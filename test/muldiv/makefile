@@ -7,9 +7,11 @@ build:
 	$(CC32)-objcopy -O binary -j .init -j .text -j .rodata -j .sdata muldiv.elf muldiv.bin
 	../rom_generator muldiv.bin
 	cp muldiv.data ../memory_contents
+	$(CC32)-objdump -D muldiv.elf > basic_test.s
 
 multilib:
 	$(CC64)-gcc muldiv.c ../crt0.s $(CCFLAGS)
 	$(CC64)-objcopy -O binary -j .init -j .text -j .rodata -j .sdata muldiv.elf muldiv.bin
 	../rom_generator muldiv.bin
 	cp muldiv.data ../memory_contents
+	$(CC64)-objdump -D muldiv.elf > basic_test.s

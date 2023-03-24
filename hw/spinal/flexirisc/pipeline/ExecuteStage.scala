@@ -128,9 +128,9 @@ case class ExecuteStage() extends Component {
     val mulArea = new Area {
       val mulUnit = new Multiplier(32)
       val mul_res = Bits(32 bits)
-      val res_h = mulUnit.io.result(0)(63 downto 32).asSInt
+      val res_h = mulUnit.io.result(0)(63 downto 32)
       val is_neg_res = False
-      val neg_res_h = (is_neg_res ? -res_h | res_h).asBits
+      val neg_res_h = is_neg_res ? ~res_h.asBits | res_h.asBits
 
       switch(io.control_signals.alu_op(1 downto 0)) {
         is(0) {
