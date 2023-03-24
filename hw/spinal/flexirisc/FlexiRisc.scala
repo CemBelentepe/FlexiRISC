@@ -51,7 +51,7 @@ object FlexiRiscTest {
       dut
     }.doSim { dut =>
       //Simulation code here
-      dut.clockDomain.forkStimulus(10)
+      dut.clockDomain.forkStimulus(15000)
       var done = dut.io.done.toBoolean
       while(!done) {
         done = dut.io.done.toBoolean
