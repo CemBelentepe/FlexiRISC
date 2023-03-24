@@ -186,6 +186,7 @@ case class DecodeStage() extends Component {
       io.control_signals.alu_op := io.funct3
       io.control_signals.is_arth_shift := io.funct7(5)
       io.control_signals.is_sub := io.funct7(5)
+      io.control_signals.is_muldiv := io.funct7(0)
     }
   }
 

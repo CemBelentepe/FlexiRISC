@@ -1,7 +1,8 @@
 package flexirisc.pipeline
 
-import flexirisc.{CarrySelectAdder, Config}
+import flexirisc.{CarrySelectAdder, Config, Multiplier}
 import spinal.core._
+import spinal.core.internals.Operator
 import spinal.lib._
 
 import scala.language.postfixOps
@@ -114,6 +115,57 @@ case class ExecuteStage() extends Component {
     )
   }
 
+  val muldiv = new Area {
+    val is_mul = io.control_signals.alu_op(2)
+
+    val is_neg_lhs = src1.msb
+    val is_neg_rhs = src2.msb
+    val is_neg_res = False
+    val sgn_lhs = is_neg_lhs ? (-src1.asSInt).asUInt | src1.asUInt
+    val sgn_rhs = is_neg_rhs ? (-src2.asSInt).asUInt | src2.asUInt
+
+    val mulArea = new Area {
+      val mulUnit = new Multiplier(32)
+      val mul_res = Bits(32 bits)
+      val res_h = mulUnit.io.result(0)(63 downto 32).asSInt
+      val neg_res_h = (is_neg_res ? -res_h | res_h).asBits
+
+      switch(io.control_signals.alu_op(1 downto 0)) {
+        is(0) {
+          mulUnit.io.lhs := src1.asUInt
+          mulUnit.io.rhs := src2.asUInt
+          mul_res := mulUnit.io.result(0)(31 downto 0).asBits
+        }
+        is(1) {
+          mulUnit.io.lhs := sgn_lhs
+          mulUnit.io.rhs := sgn_rhs
+          is_neg_res := is_neg_lhs ^ is_neg_rhs
+          mul_res := neg_res_h
+        }
+        is(2) {
+          mulUnit.io.lhs := sgn_lhs
+          mulUnit.io.rhs := src2.asUInt
+          is_neg_res := is_neg_lhs
+          mul_res := neg_res_h
+        }
+        is(3) {
+          mulUnit.io.lhs := src1.asUInt
+          mulUnit.io.rhs := src2.asUInt
+          mul_res := res_h.asBits
+        }
+      }
+
+    }
+
+    // TODO Div Unit
+    val divArea = new Area {
+      val div_res = B(0, 32 bits)
+    }
+
+    val res = is_mul ? mulArea.mul_res | divArea.div_res
+
+  }
+
   // TODO if jump is to the next instr, do not flush
   io.jump_enable := (io.control_signals.is_jump | (io.control_signals.is_branch & comparator.res))
   val alu_res = io.control_signals.alu_op.mux(
@@ -128,7 +180,7 @@ case class ExecuteStage() extends Component {
   )
 
   io.result := io.control_signals.sel_alu_res.mux(
-    SEL_RES.ALU -> alu_res,
+    SEL_RES.ALU -> (io.control_signals.is_muldiv ? muldiv.res | alu_res),
     SEL_RES.PC -> io.pc_next_seq.asBits
   )
 

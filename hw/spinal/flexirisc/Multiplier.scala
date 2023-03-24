@@ -31,12 +31,12 @@ case class Multiplier(width: Int) extends Component {
     mul_hh.io.lhs := io.lhs.subdivideIn(2 slices)(1)
     mul_hh.io.rhs := io.rhs.subdivideIn(2 slices)(1)
 
-    io.result(last_ind) := ((io.lhs.subdivideIn(2 slices)(0) * io.rhs.subdivideIn(2 slices)(1)) << (width/2)) +
-      (mul_hh.io.result(last_ind-1).asBits ## mul_ll.io.result(last_ind-1).asBits).asUInt +
+    io.result(0) := ((io.lhs.subdivideIn(2 slices)(0) * io.rhs.subdivideIn(2 slices)(1)) << (width/2)) +
+      (mul_hh.io.result(0).asBits ## mul_ll.io.result(0).asBits).asUInt +
       ((io.lhs.subdivideIn(2 slices)(1) * io.rhs.subdivideIn(2 slices)(0)) << (width/2))
 
-    for(i <- 0 until log2Up(width/8)){
-      io.result(i) := (mul_hh.io.result(i).asBits ## mul_ll.io.result(i).asBits).asUInt
+    for(i <- 1 until log2Up(width/8)+1){
+      io.result(i) := (mul_hh.io.result(i-1).asBits ## mul_ll.io.result(i-1).asBits).asUInt
     }
   }
 }
@@ -64,7 +64,7 @@ object MultiplierTest {
 
           sleep(10)
           val expected = a * b
-          val result = dut.io.result(log2Up(32/8)).toBigInt
+          val result = dut.io.result(0).toBigInt
           val passed = result == expected
 
           if (!passed) {
