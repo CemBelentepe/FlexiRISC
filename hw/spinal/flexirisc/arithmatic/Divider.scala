@@ -1,5 +1,6 @@
-package flexirisc
+package flexirisc.arithmatic
 
+import flexirisc.Config
 import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
@@ -87,14 +88,6 @@ object DividerTest {
         // Simulation code here
         dut.clockDomain.forkStimulus(10)
         dut.clockDomain.waitSampling()
-
-        // Manuel Test
-        dut.io.lhs #= 12
-        dut.io.rhs #= 3
-        dut.io.start #= true
-        sleep(30)
-        dut.io.start #= false
-        sleep(1000)
 
         // Automatic Test
         var n_passed = 0

@@ -1,9 +1,8 @@
 package flexirisc.pipeline
 
-import flexirisc.{CarrySelectAdder, Config, Divider, Multiplier}
+import flexirisc.Config
+import flexirisc.arithmatic.{CarrySelectAdder, Divider, Multiplier}
 import spinal.core._
-import spinal.core.internals.Operator
-import spinal.lib._
 
 import scala.language.postfixOps
 
@@ -128,15 +127,20 @@ case class ExecuteStage() extends Component {
     val mulArea = new Area {
       val mulUnit = new Multiplier(32)
       val mul_res = Bits(32 bits)
-      val res_h = mulUnit.io.result(0)(63 downto 32)
+      val res_h = mulUnit.io.result(63 downto 32)
       val is_neg_res = False
       val neg_res_h = is_neg_res ? ~res_h.asBits | res_h.asBits
+
+      val is_mul_inst = io.control_signals.is_muldiv && is_mul
+      val is_mul_1d = RegNext(is_mul_inst)
+      mulUnit.io.start := !is_mul_1d && is_mul_inst
+      mulUnit.io.enabled := True
 
       switch(io.control_signals.alu_op(1 downto 0)) {
         is(0) {
           mulUnit.io.lhs := src1.asUInt
           mulUnit.io.rhs := src2.asUInt
-          mul_res := mulUnit.io.result(0)(31 downto 0).asBits
+          mul_res := mulUnit.io.result(31 downto 0).asBits
         }
         is(1) {
           mulUnit.io.lhs := sgn_lhs
@@ -192,7 +196,7 @@ case class ExecuteStage() extends Component {
     }
 
     val res = is_mul ? mulArea.mul_res | divArea.div_res
-    val muldiv_done = is_mul ? True | divArea.divUnit.io.done
+    val muldiv_done = is_mul ? mulArea.mulUnit.io.done | divArea.divUnit.io.done
   }
 
   // TODO if jump is to the next instr, do not flush

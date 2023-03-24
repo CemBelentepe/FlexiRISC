@@ -1,5 +1,6 @@
-package flexirisc
+package flexirisc.arithmatic
 
+import flexirisc.Config
 import spinal.core._
 import spinal.core.sim._
 import spinal.lib._
@@ -7,7 +8,7 @@ import spinal.lib._
 import scala.language.postfixOps
 import scala.util.Random
 
-case class Multiplier(width: Int) extends Component {
+case class MultiplierCell(width: Int) extends Component {
   val io = new Bundle {
     val lhs = in UInt (width bits)
     val rhs = in UInt (width bits)
@@ -21,8 +22,8 @@ case class Multiplier(width: Int) extends Component {
   if (width <= 8) {
     io.result(0) := io.lhs * io.rhs
   } else {
-    val mul_ll = new Multiplier(width/2)
-    val mul_hh = new Multiplier(width/2)
+    val mul_ll = new MultiplierCell(width/2)
+    val mul_hh = new MultiplierCell(width/2)
     val last_ind = log2Up(width/8)
 
     mul_ll.io.lhs := io.lhs.subdivideIn(2 slices)(0)
@@ -41,15 +42,15 @@ case class Multiplier(width: Int) extends Component {
   }
 }
 
-object Multiplier extends App {
-  Config.spinal.generateVerilog(new Multiplier(64))
+object MultiplierCell extends App {
+  Config.spinal.generateVerilog(new MultiplierCell(64))
 }
 
 object MultiplierTest {
   def main(args: Array[String]): Unit = {
     SimConfig
       .compile {
-        val dut = new Multiplier(32)
+        val dut = new MultiplierCell(32)
         dut.io.simPublic()
         dut
       }
