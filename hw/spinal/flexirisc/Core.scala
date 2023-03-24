@@ -32,7 +32,7 @@ case class Core() extends Component {
   hazardUnit.io.id1_stall_if := id1Stage.io.stall_if
   hazardUnit.io.id1_valid := True
   hazardUnit.io.id2_valid := True
-  hazardUnit.io.ex_valid := True
+  hazardUnit.io.ex_valid := exStage.io.stage_valid
   hazardUnit.io.mem_valid := memStage.io.stage_valid
 
   hazardUnit.io.id2_control_signals := id2Stage.io.control_signals

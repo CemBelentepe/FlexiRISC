@@ -1,14 +1,11 @@
-package flexirisc
+package flexirisc.arithmatic
 
+import flexirisc.Config
 import spinal.core._
-import spinal.lib._
-
-import spinal.sim._
 import spinal.core.sim._
 
-import scala.util.Random
-
 import scala.language.postfixOps
+import scala.util.Random
 
 case class CarrySelectAdder(width: Int, unitSize: Int) extends Component {
   val io = new Bundle {

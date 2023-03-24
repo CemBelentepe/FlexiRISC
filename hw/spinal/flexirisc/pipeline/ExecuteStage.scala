@@ -1,8 +1,8 @@
 package flexirisc.pipeline
 
-import flexirisc.{CarrySelectAdder, Config}
+import flexirisc.Config
+import flexirisc.arithmatic.{CarrySelectAdder, Divider, Multiplier}
 import spinal.core._
-import spinal.lib._
 
 import scala.language.postfixOps
 
@@ -60,6 +60,8 @@ case class ExecuteStage() extends Component {
     val jump_enable = out Bool()
     val jump_address = out UInt(32 bits)
     val src2 = out Bits(32 bits)
+
+    val stage_valid = out Bool()
   }
 
   val src1 = Bits(32 bits)
@@ -114,6 +116,88 @@ case class ExecuteStage() extends Component {
     )
   }
 
+  val muldiv = new Area {
+    val is_mul = ~io.control_signals.alu_op(2)
+
+    val is_neg_lhs = src1.msb
+    val is_neg_rhs = src2.msb
+    val sgn_lhs = is_neg_lhs ? (-src1.asSInt).asUInt | src1.asUInt
+    val sgn_rhs = is_neg_rhs ? (-src2.asSInt).asUInt | src2.asUInt
+
+    val mulArea = new Area {
+      val mulUnit = new Multiplier(32)
+      val mul_res = Bits(32 bits)
+      val is_neg_res = False
+      val neg_res_h = (is_neg_res ? (-mulUnit.io.result.asSInt).asUInt(63 downto 32) | mulUnit.io.result(63 downto 32)).asBits
+
+      val is_mul_inst = io.control_signals.is_muldiv && is_mul
+      val is_mul_1d = RegNext(is_mul_inst)
+      mulUnit.io.start := !is_mul_1d && is_mul_inst
+      mulUnit.io.enabled := True
+
+      switch(io.control_signals.alu_op(1 downto 0)) {
+        is(0) {
+          mulUnit.io.lhs := src1.asUInt
+          mulUnit.io.rhs := src2.asUInt
+          mul_res := mulUnit.io.result(31 downto 0).asBits
+        }
+        is(1) {
+          mulUnit.io.lhs := sgn_lhs
+          mulUnit.io.rhs := sgn_rhs
+          is_neg_res := is_neg_lhs ^ is_neg_rhs
+          mul_res := neg_res_h
+        }
+        is(2) {
+          mulUnit.io.lhs := sgn_lhs
+          mulUnit.io.rhs := src2.asUInt
+          is_neg_res := is_neg_lhs
+          mul_res := neg_res_h
+        }
+        is(3) {
+          mulUnit.io.lhs := src1.asUInt
+          mulUnit.io.rhs := src2.asUInt
+          mul_res := mulUnit.io.result(63 downto 32).asBits
+        }
+      }
+
+    }
+
+    val divArea = new Area {
+      val divUnit = new Divider(32)
+      val div_res = Bits(32 bits)
+      val is_div_inst = io.control_signals.is_muldiv && !is_mul
+      val is_div_1d = RegNext(is_div_inst)
+      divUnit.io.start := !is_div_1d && is_div_inst
+
+      switch(io.control_signals.alu_op(1 downto 0)){
+        is(0){
+          divUnit.io.lhs := sgn_lhs
+          divUnit.io.rhs := sgn_rhs
+          div_res := (is_neg_lhs ^ is_neg_rhs) ? (-divUnit.io.div.asSInt).asBits | divUnit.io.div
+        }
+        is(1) {
+          divUnit.io.lhs := src1.asUInt
+          divUnit.io.rhs := src2.asUInt
+          div_res := divUnit.io.div
+        }
+        is(2) {
+          divUnit.io.lhs := sgn_lhs
+          divUnit.io.rhs := sgn_rhs
+          div_res := (is_neg_lhs ^ is_neg_rhs) ? (-divUnit.io.rem.asSInt).asBits | divUnit.io.rem
+        }
+        is(3) {
+          divUnit.io.lhs := src1.asUInt
+          divUnit.io.rhs := src2.asUInt
+          div_res := divUnit.io.rem
+        }
+      }
+
+    }
+
+    val res = is_mul ? mulArea.mul_res | divArea.div_res
+    val muldiv_done = is_mul ? mulArea.mulUnit.io.done | divArea.divUnit.io.done
+  }
+
   // TODO if jump is to the next instr, do not flush
   io.jump_enable := (io.control_signals.is_jump | (io.control_signals.is_branch & comparator.res))
   val alu_res = io.control_signals.alu_op.mux(
@@ -128,8 +212,13 @@ case class ExecuteStage() extends Component {
   )
 
   io.result := io.control_signals.sel_alu_res.mux(
-    SEL_RES.ALU -> alu_res,
+    SEL_RES.ALU -> (io.control_signals.is_muldiv ? muldiv.res | alu_res),
     SEL_RES.PC -> io.pc_next_seq.asBits
+  )
+
+  io.stage_valid := io.control_signals.sel_alu_res.mux(
+    SEL_RES.ALU -> (io.control_signals.is_muldiv ? muldiv.muldiv_done | True),
+    SEL_RES.PC -> True
   )
 
   io.jump_address := add_res

@@ -111,8 +111,8 @@ case class DecodeStage() extends Component {
   }
 
   val regFile = new RegFile()
-  regFile.io.rs1 := io.rs1
-  regFile.io.rs2 := io.rs2
+  regFile.io.rs1 := io.control_signals.rs1
+  regFile.io.rs2 := io.control_signals.rs2
   regFile.io.rd := io.wb_rd
   io.src1 := regFile.io.src1
   io.src2 := regFile.io.src2
@@ -186,6 +186,7 @@ case class DecodeStage() extends Component {
       io.control_signals.alu_op := io.funct3
       io.control_signals.is_arth_shift := io.funct7(5)
       io.control_signals.is_sub := io.funct7(5)
+      io.control_signals.is_muldiv := io.funct7(0)
     }
   }
 
