@@ -61,6 +61,8 @@ case class ExecuteStage() extends Component {
     val jump_enable = out Bool()
     val jump_address = out UInt(32 bits)
     val src2 = out Bits(32 bits)
+
+    val stage_valid = out Bool()
   }
 
   val src1 = Bits(32 bits)
@@ -160,6 +162,9 @@ case class ExecuteStage() extends Component {
     val divArea = new Area {
       val divUnit = new Divider(32)
       val div_res = Bits(32 bits)
+      val is_div_inst = io.control_signals.is_muldiv && !is_mul
+      val is_div_1d = RegNext(is_div_inst)
+      divUnit.io.start := !is_div_1d && is_div_inst
 
       switch(io.control_signals.alu_op(1 downto 0)){
         is(0){
@@ -187,7 +192,7 @@ case class ExecuteStage() extends Component {
     }
 
     val res = is_mul ? mulArea.mul_res | divArea.div_res
-
+    val muldiv_done = is_mul ? True | divArea.divUnit.io.done
   }
 
   // TODO if jump is to the next instr, do not flush
@@ -206,6 +211,11 @@ case class ExecuteStage() extends Component {
   io.result := io.control_signals.sel_alu_res.mux(
     SEL_RES.ALU -> (io.control_signals.is_muldiv ? muldiv.res | alu_res),
     SEL_RES.PC -> io.pc_next_seq.asBits
+  )
+
+  io.stage_valid := io.control_signals.sel_alu_res.mux(
+    SEL_RES.ALU -> (io.control_signals.is_muldiv ? muldiv.muldiv_done | True),
+    SEL_RES.PC -> True
   )
 
   io.jump_address := add_res

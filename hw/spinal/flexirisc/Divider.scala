@@ -31,7 +31,7 @@ case class Divider (width: Int) extends Component {
   val num = io.start ? (io.lhs << ((width - 1) - priorityEncoder.io.res)).resized | numReg
   val bitsLeft = io.start ? priorityEncoder.io.res | bitsLeftReg - 1
 
-  io.done := bitsLeftReg === 0
+  io.done := !io.start && bitsLeftReg === 0
 
   when(io.start || bitsLeftReg =/= 0) {
     val remNext = UInt(width bits)
