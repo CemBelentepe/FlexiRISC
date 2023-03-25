@@ -106,6 +106,7 @@ object Multiplier extends App {
 object MultiplierTest {
   def main(args: Array[String]): Unit = {
     SimConfig
+      .withWave
       .compile {
         val dut = new Multiplier(32)
         dut.io.simPublic()
@@ -124,6 +125,7 @@ object MultiplierTest {
           dut.io.lhs #= a
           dut.io.rhs #= b
           dut.io.start #= true
+          dut.io.enabled #= true
           dut.clockDomain.waitSampling(2)
           dut.io.start #= false
 

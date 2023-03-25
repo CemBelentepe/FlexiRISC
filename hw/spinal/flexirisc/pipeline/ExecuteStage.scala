@@ -124,15 +124,18 @@ case class ExecuteStage() extends Component {
     val sgn_lhs = is_neg_lhs ? (-src1.asSInt).asUInt | src1.asUInt
     val sgn_rhs = is_neg_rhs ? (-src2.asSInt).asUInt | src2.asUInt
 
+    val reg_rs1_1d = RegNext(io.control_signals.rs1)
+    val reg_rs2_1d = RegNext(io.control_signals.rs2)
+
+    val start = (reg_rs1_1d =/= io.control_signals.rs1) | (reg_rs2_1d =/= io.control_signals.rs2)
+
     val mulArea = new Area {
       val mulUnit = new Multiplier(32)
       val mul_res = Bits(32 bits)
       val is_neg_res = False
       val neg_res_h = (is_neg_res ? (-mulUnit.io.result.asSInt).asUInt(63 downto 32) | mulUnit.io.result(63 downto 32)).asBits
 
-      val is_mul_inst = io.control_signals.is_muldiv && is_mul
-      val is_mul_1d = RegNext(is_mul_inst)
-      mulUnit.io.start := !is_mul_1d && is_mul_inst
+      mulUnit.io.start := start
       mulUnit.io.enabled := True
 
       switch(io.control_signals.alu_op(1 downto 0)) {
@@ -165,9 +168,7 @@ case class ExecuteStage() extends Component {
     val divArea = new Area {
       val divUnit = new Divider(32)
       val div_res = Bits(32 bits)
-      val is_div_inst = io.control_signals.is_muldiv && !is_mul
-      val is_div_1d = RegNext(is_div_inst)
-      divUnit.io.start := !is_div_1d && is_div_inst
+      divUnit.io.start := start
 
       switch(io.control_signals.alu_op(1 downto 0)){
         is(0){

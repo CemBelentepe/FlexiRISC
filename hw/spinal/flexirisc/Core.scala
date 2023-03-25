@@ -99,7 +99,7 @@ case class Core() extends Component {
   exStage.io.id_src2 := idex.io.ex_src2
   exStage.io.immediate := idex.io.ex_immediate
   exStage.io.mem_res := exmem.io.mem_result
-  exStage.io.wb_res := memwb.io.wb_result_data
+  exStage.io.wb_res := wbStage.io.data
 
   exStage.io.use_mem_src1 := hazardUnit.io.use_mem_src1
   exStage.io.use_mem_src2 := hazardUnit.io.use_mem_src2

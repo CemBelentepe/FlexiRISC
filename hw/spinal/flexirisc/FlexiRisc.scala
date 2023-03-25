@@ -45,17 +45,19 @@ object FlexiRisc extends App{
 
 object FlexiRiscTest {
   def main(args: Array[String]): Unit = {
+    val max_sim_time = 100000
+
     SimConfig.withWave.compile {
       val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/muldiv/muldiv.data")
       dut.io.simPublic()
       dut
     }.doSim { dut =>
       //Simulation code here
-      dut.clockDomain.forkStimulus(15000)
-      var done = dut.io.done.toBoolean
-      while(!done) {
-        done = dut.io.done.toBoolean
+      dut.clockDomain.forkStimulus(20000)
+      var sim_time = 0
+      while(!dut.io.done.toBoolean && sim_time < max_sim_time) {
         dut.clockDomain.waitRisingEdge()
+        sim_time += 1
       }
 
     }
