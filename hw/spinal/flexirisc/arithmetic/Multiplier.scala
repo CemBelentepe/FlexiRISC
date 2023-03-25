@@ -1,4 +1,4 @@
-package flexirisc.arithmatic
+package flexirisc.arithmetic
 
 import flexirisc.Config
 import spinal.core._
@@ -103,7 +103,7 @@ object Multiplier extends App {
 }
 
 
-object MultiplierCellTest {
+object MultiplierTest {
   def main(args: Array[String]): Unit = {
     SimConfig
       .compile {

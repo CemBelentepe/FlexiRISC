@@ -1,4 +1,4 @@
-package flexirisc.arithmatic
+package flexirisc.arithmetic
 
 import flexirisc.Config
 import spinal.core._

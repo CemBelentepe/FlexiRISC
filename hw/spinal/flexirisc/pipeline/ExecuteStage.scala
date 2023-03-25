@@ -1,7 +1,7 @@
 package flexirisc.pipeline
 
 import flexirisc.Config
-import flexirisc.arithmatic.{CarrySelectAdder, Divider, Multiplier}
+import flexirisc.arithmetic.{CarrySelectAdder, Divider, Multiplier}
 import spinal.core._
 
 import scala.language.postfixOps

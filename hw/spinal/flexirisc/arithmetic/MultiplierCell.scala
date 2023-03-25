@@ -1,4 +1,4 @@
-package flexirisc.arithmatic
+package flexirisc.arithmetic
 
 import flexirisc.Config
 import spinal.core._
@@ -46,7 +46,7 @@ object MultiplierCell extends App {
   Config.spinal.generateVerilog(new MultiplierCell(64))
 }
 
-object MultiplierTest {
+object MultiplierCellTest {
   def main(args: Array[String]): Unit = {
     SimConfig
       .compile {
