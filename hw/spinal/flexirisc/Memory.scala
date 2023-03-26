@@ -56,8 +56,8 @@ case class Memory(depth: Int, dataWidth: Int, initFile: String = null) extends C
     io.port_a.mask
   )
   val port_a_addr_1d = RegNext(io.port_a.address)
-  val wea_1d = RegNext(wea)
-  io.port_a.valid := io.port_a.address === port_a_addr_1d && wea_1d === False
+  val wea_1d = RegNext(wea) init(True)
+  io.port_a.valid := !wea_1d
 
   val web = io.port_b.mask.orR
   io.port_b.response := mem.readWriteSync(
@@ -68,8 +68,8 @@ case class Memory(depth: Int, dataWidth: Int, initFile: String = null) extends C
     io.port_b.mask
   )
   val port_b_addr_1d = RegNext(io.port_b.address)
-  val web_1d = RegNext(web)
-  io.port_b.valid := io.port_b.address === port_b_addr_1d && web_1d === False
+  val web_1d = RegNext(web) init(True)
+  io.port_b.valid := !web_1d
 }
 
 object Memory extends App {

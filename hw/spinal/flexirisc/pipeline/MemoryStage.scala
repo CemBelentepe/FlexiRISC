@@ -12,30 +12,24 @@ case class MemWb() extends Component {
     val wb_flush = in Bool()
 
     val mem_control_signals = in(ControlSignals())
-    val mem_load_data = in Bits(32 bits)
     val mem_result_data = in Bits(32 bits)
 
     val wb_control_signals = out(ControlSignals())
-    val wb_load_data = out Bits (32 bits)
     val wb_result_data = out Bits (32 bits)
   }
 
   val control_signals = Reg(ControlSignals()) init(DecodeStage.default_control())
-  val load_data = Reg(Bits (32 bits)) init(0)
   val result_data = Reg(Bits (32 bits)) init(0)
 
   when(io.wb_flush) {
     control_signals := DecodeStage.default_control()
-    load_data := 0
     result_data := 0
   }.elsewhen(!io.wb_stall) {
     control_signals := io.mem_control_signals
-    load_data := io.mem_load_data
     result_data := io.mem_result_data
   }
 
   io.wb_control_signals := control_signals
-  io.wb_load_data := load_data
   io.wb_result_data := result_data
 }
 
@@ -46,17 +40,17 @@ case class MemoryStage() extends Component {
     val ex_result_data = in Bits(32 bits)
     val src2 = in Bits(32 bits)
 
-    val data_mem = master(MemoryPort(32, 32))
-
-    val load_data = out Bits(32 bits)
     val result_data = out Bits(32 bits)
     val stage_valid = out Bool()
+
+    val request = out Bool()
+    val write_mask = out Bits(4 bits)
+    val write_data = out Bits(32 bits)
   }
 
-  io.data_mem.address := io.ex_result_data.asUInt
-  io.data_mem.ready := io.control_signals.is_store | io.control_signals.is_load
+  io.request := io.control_signals.is_store | io.control_signals.is_load
 
-  io.data_mem.mask :=
+  io.write_mask :=
     B(4 bits, default -> io.control_signals.is_store) &
     io.control_signals.funct3.mux(
     0 -> io.ex_result_data(1 downto 0).asUInt.muxList(
@@ -68,13 +62,12 @@ case class MemoryStage() extends Component {
     2 -> B"4'b1111",
     default -> B(0)
   )
-  io.stage_valid := io.control_signals.is_load ? io.data_mem.valid | True
-  io.load_data := io.data_mem.response
+  io.stage_valid := True
 
   val b = io.src2.subdivideIn(8 bits)(0)
   val h = io.src2.subdivideIn(16 bits)(0)
 
-  io.data_mem.payload := io.control_signals.funct3.mux(
+  io.write_data := io.control_signals.funct3.mux(
     0-> b ## b ## b ## b,
     1 -> h ## h,
     2 -> io.src2,

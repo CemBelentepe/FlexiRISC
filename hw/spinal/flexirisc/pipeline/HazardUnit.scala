@@ -15,6 +15,7 @@ case class HazardUnit() extends Component {
     val id2_valid = in Bool()
     val ex_valid = in Bool()
     val mem_valid = in Bool()
+    val wb_valid = in Bool()
 
     val id2_control_signals = in(ControlSignals())
     val ex_control_signals = in(ControlSignals())
@@ -64,7 +65,7 @@ case class HazardUnit() extends Component {
   val halt_id2 = !io.id2_valid | raw
   val halt_ex = !io.ex_valid
   val halt_mem = !io.mem_valid
-  val halt_wb = False
+  val halt_wb = !io.wb_valid
 
   val branch_flush = io.take_branch
 

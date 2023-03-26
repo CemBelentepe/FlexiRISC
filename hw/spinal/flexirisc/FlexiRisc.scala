@@ -48,7 +48,7 @@ object FlexiRiscTest {
     val max_sim_time = 100000
 
     SimConfig.withWave.compile {
-      val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/muldiv/muldiv.data")
+      val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/basic_asm/basic_asm.data")
       dut.io.simPublic()
       dut
     }.doSim { dut =>

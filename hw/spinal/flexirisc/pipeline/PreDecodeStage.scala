@@ -83,6 +83,7 @@ case class Id1Id2() extends Component {
 case class PreDecodeStage() extends Component {
   val io = new Bundle {
     val instruction = in Bits (32 bits)
+    val inst_valid = in Bool()
 
     val opcode = out(OPCODE())
     val rs1 = out UInt(5 bits)
@@ -93,14 +94,17 @@ case class PreDecodeStage() extends Component {
     val immediate = out Bits(32 bits)
 
     val stall_if = out Bool()
+    val stage_valid = out Bool()
   }
 
-  val immediateDecoder = new ImmediateDecoder
-  immediateDecoder.io.instruction := io.instruction
+  val instruction = (!io.inst_valid) ? B"32'h00000013" | io.instruction
+  io.stage_valid := io.inst_valid
 
-  when(io.instruction(1 downto 0) === B"2'b11") {
-    io.opcode.asData := io
-      .instruction(6 downto 2)
+  val immediateDecoder = new ImmediateDecoder
+  immediateDecoder.io.instruction := instruction
+
+  when(instruction(1 downto 0) === B"2'b11") {
+    io.opcode.asData := instruction(6 downto 2)
       .mux(
         B"5'b01101" -> OPCODE.LUI.asData,
         B"5'b00101" -> OPCODE.AUIPC.asData,
@@ -114,8 +118,7 @@ case class PreDecodeStage() extends Component {
         default -> OPCODE.OP.asData
       )
 
-    io.immediate := io
-      .instruction(6 downto 2)
+    io.immediate := instruction(6 downto 2)
       .mux(
         B"5'b01101" -> immediateDecoder.io.u_imm,
         B"5'b00101" -> immediateDecoder.io.u_imm,
@@ -127,11 +130,11 @@ case class PreDecodeStage() extends Component {
         default -> B(0)
       )
 
-    io.rs1 := io.instruction(19 downto 15).asUInt
-    io.rs2 := io.instruction(24 downto 20).asUInt
-    io.rd := io.instruction(11 downto 7).asUInt
-    io.funct3 := io.instruction(14 downto 12)
-    io.funct7 := io.instruction(31 downto 25)
+    io.rs1 := instruction(19 downto 15).asUInt
+    io.rs2 := instruction(24 downto 20).asUInt
+    io.rd := instruction(11 downto 7).asUInt
+    io.funct3 := instruction(14 downto 12)
+    io.funct7 := instruction(31 downto 25)
     io.stall_if := False
   }.otherwise {
     // TODO Decode the RV32c here
