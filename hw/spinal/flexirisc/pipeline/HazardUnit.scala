@@ -60,7 +60,7 @@ case class HazardUnit() extends Component {
   val raw = (raw_ex_src1 | raw_ex_src2 | raw_mem_src1 | raw_mem_src2) & io.id2_valid
 
   val halt_if = !io.if_valid | io.id1_stall_if
-  val halt_id1 = !io.id2_valid
+  val halt_id1 = !io.id1_valid
   val halt_id2 = !io.id2_valid | raw
   val halt_ex = !io.ex_valid
   val halt_mem = !io.mem_valid
