@@ -16,6 +16,7 @@ case class Id1Id2() extends Component {
     val id2_stall = in Bool ()
     val id2_flush = in Bool ()
 
+    val id1_instruction_dbg = in Bits(32 bits)
     val id1_opcode = in(OPCODE())
     val id1_rs1 = in UInt (5 bits)
     val id1_rs2 = in UInt (5 bits)
@@ -26,6 +27,7 @@ case class Id1Id2() extends Component {
     val id1_pc = in UInt (32 bits)
     val id1_pc_next_seq = in UInt (32 bits)
 
+    val id2_instruction_dbg = out Bits(32 bits)
     val id2_opcode = out(OPCODE())
     val id2_rs1 = out UInt (5 bits)
     val id2_rs2 = out UInt (5 bits)
@@ -37,6 +39,7 @@ case class Id1Id2() extends Component {
     val id2_pc_next_seq = out UInt (32 bits)
   }
 
+  val instruction_dbg = Reg(Bits(32 bits)) init (B"32'h00000013")
   val opcode = Reg(OPCODE()) init (OPCODE.OP)
   val rs1 = Reg(UInt(5 bits)) init (0)
   val rs2 = Reg(UInt(5 bits)) init (0)
@@ -48,6 +51,7 @@ case class Id1Id2() extends Component {
   val pc_next_seq = Reg(UInt(32 bits)) init (0)
 
   when(io.id2_flush) {
+    instruction_dbg := B"32'h00000013"
     opcode := OPCODE.OP
     rs1 := 0
     rs2 := 0
@@ -58,6 +62,7 @@ case class Id1Id2() extends Component {
     pc := 0
     pc_next_seq := 0
   }.elsewhen(!io.id2_stall) {
+    instruction_dbg := io.id1_instruction_dbg
     opcode := io.id1_opcode
     rs1 := io.id1_rs1
     rs2 := io.id1_rs2
@@ -69,6 +74,7 @@ case class Id1Id2() extends Component {
     pc_next_seq := io.id1_pc_next_seq
   }
 
+  io.id2_instruction_dbg := instruction_dbg
   io.id2_opcode := opcode
   io.id2_rs1 := rs1
   io.id2_rs2 := rs2
@@ -98,7 +104,10 @@ case class PreDecodeStage() extends Component {
   }
 
   val instruction = (!io.inst_valid) ? B"32'h00000013" | io.instruction
-  io.stage_valid := io.inst_valid
+  io.stage_valid := True
+
+  // TODO stall_if is dependent on the step counter
+  io.stall_if := False
 
   val immediateDecoder = new ImmediateDecoder
   immediateDecoder.io.instruction := instruction
@@ -135,7 +144,6 @@ case class PreDecodeStage() extends Component {
     io.rd := instruction(11 downto 7).asUInt
     io.funct3 := instruction(14 downto 12)
     io.funct7 := instruction(31 downto 25)
-    io.stall_if := False
   }.otherwise {
     // TODO Decode the RV32c here
     io.opcode := OPCODE.OP
@@ -146,8 +154,6 @@ case class PreDecodeStage() extends Component {
     io.rd := 0
     io.funct3 := 0
     io.funct7 := 0
-    // TODO stall_if is dependent on the step counter
-    io.stall_if := False
   }
 
 }

@@ -22,7 +22,7 @@ int main()
     }
 
 
-    int *addr_ptr = DEBUG_IF_ADDR;
+    volatile int *addr_ptr = DEBUG_IF_ADDR;
 
     *addr_ptr = ((memcmp(mul_res,c,80) == 0) << 1) | (memcmp(div_res,a,40) == 0);
 

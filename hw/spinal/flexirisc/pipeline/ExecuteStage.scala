@@ -124,10 +124,12 @@ case class ExecuteStage() extends Component {
     val sgn_lhs = is_neg_lhs ? (-src1.asSInt).asUInt | src1.asUInt
     val sgn_rhs = is_neg_rhs ? (-src2.asSInt).asUInt | src2.asUInt
 
-    val reg_rs1_1d = RegNext(io.control_signals.rs1)
-    val reg_rs2_1d = RegNext(io.control_signals.rs2)
+    val reg_src1_1d = RegNext(src1)
+    val reg_src2_1d = RegNext(src2)
+    val alu_1d = RegNext(io.control_signals.alu_op)
 
-    val start = (reg_rs1_1d =/= io.control_signals.rs1) | (reg_rs2_1d =/= io.control_signals.rs2)
+    // TODO IF rs1 and rs2 are same as 1d, and mul was also active 1d ago, do not start
+    val start = (alu_1d =/= io.control_signals.alu_op) | (reg_src1_1d =/= src1) | (reg_src2_1d =/= src2)
 
     val mulArea = new Area {
       val mulUnit = new Multiplier(32)

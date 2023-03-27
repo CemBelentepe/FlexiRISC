@@ -46,6 +46,7 @@ case class IdEx() extends Component {
     val ex_stall = in Bool()
     val ex_flush = in Bool()
 
+    val id2_instruction_dbg = in Bits (32 bits)
     val id2_control_signals = in(ControlSignals())
     val id2_src1 = in Bits(32 bits)
     val id2_src2 = in Bits(32 bits)
@@ -53,6 +54,7 @@ case class IdEx() extends Component {
     val id2_pc = in UInt(32 bits)
     val id2_pc_next_seq = in UInt(32 bits)
 
+    val ex_instruction_dbg = out Bits (32 bits)
     val ex_control_signals = out(ControlSignals())
     val ex_src1 = out Bits (32 bits)
     val ex_src2 = out Bits (32 bits)
@@ -61,6 +63,7 @@ case class IdEx() extends Component {
     val ex_pc_next_seq = out UInt (32 bits)
   }
 
+  val instruction_dbg = Reg(Bits(32 bits)) init (0)
   val control_signals = Reg(ControlSignals()) init(DecodeStage.default_control())
   val src1 = Reg(Bits (32 bits)) init(0)
   val src2 = Reg(Bits (32 bits)) init(0)
@@ -69,6 +72,7 @@ case class IdEx() extends Component {
   val pc_next_seq = Reg(UInt (32 bits)) init(0)
 
   when(io.ex_flush){
+    instruction_dbg := B"32'h00000013"
     control_signals := DecodeStage.default_control()
     src1 := 0
     src2 := 0
@@ -76,6 +80,7 @@ case class IdEx() extends Component {
     pc := 0
     pc_next_seq := 0
   }.elsewhen(!io.ex_stall){
+    instruction_dbg := io.id2_instruction_dbg
     control_signals := io.id2_control_signals
     src1 := io.id2_src1
     src2 := io.id2_src2
@@ -84,6 +89,7 @@ case class IdEx() extends Component {
     pc_next_seq := io.id2_pc_next_seq
   }
 
+  io.ex_instruction_dbg := instruction_dbg
   io.ex_control_signals := control_signals
   io.ex_src1 := src1
   io.ex_src2 := src2

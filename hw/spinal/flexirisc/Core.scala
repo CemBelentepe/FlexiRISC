@@ -71,6 +71,7 @@ case class Core() extends Component {
   id1id2.io.id2_stall := hazardUnit.io.id2_stall
   id1id2.io.id2_flush := hazardUnit.io.id2_flush
 
+  id1id2.io.id1_instruction_dbg := ifLoad.io.data
   id1id2.io.id1_opcode := id1Stage.io.opcode
   id1id2.io.id1_rs1 := id1Stage.io.rs1
   id1id2.io.id1_rs2 := id1Stage.io.rs2
@@ -95,6 +96,7 @@ case class Core() extends Component {
   idex.io.ex_stall := hazardUnit.io.ex_stall
   idex.io.ex_flush := hazardUnit.io.ex_flush
 
+  idex.io.id2_instruction_dbg := id1id2.io.id2_instruction_dbg
   idex.io.id2_control_signals := id2Stage.io.control_signals
   idex.io.id2_src1 := id2Stage.io.src1
   idex.io.id2_src2 := id2Stage.io.src2
