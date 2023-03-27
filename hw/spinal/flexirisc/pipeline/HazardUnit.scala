@@ -24,10 +24,10 @@ case class HazardUnit() extends Component {
 
     val take_branch = in Bool()
 
+    val use_ex_src1 = out Bool()
+    val use_ex_src2 = out Bool()
     val use_mem_src1 = out Bool()
     val use_mem_src2 = out Bool()
-    val use_wb_src1 = out Bool()
-    val use_wb_src2 = out Bool()
 
     val if_stall = out Bool()
 
@@ -49,16 +49,21 @@ case class HazardUnit() extends Component {
 
   // TODO check valid_1d for if and mem, if they are false, try_flush id and wb
 
+  // TODO instead of stalling, use the same signals for forwarding, forward through the ID2 not EX
   // Stall on data hazard
-  val ex_rd_x0 = io.ex_control_signals.rd === 0
-  val raw_ex_src1 = io.id2_control_signals.rs1 === io.ex_control_signals.rd && !ex_rd_x0
-  val raw_ex_src2 = io.id2_control_signals.rs2 === io.ex_control_signals.rd && !ex_rd_x0
+  val raw_ex_src1 = io.id2_control_signals.rs1 === io.ex_control_signals.rd && io.ex_control_signals.rd =/= 0
+  val raw_ex_src2 = io.id2_control_signals.rs2 === io.ex_control_signals.rd && io.ex_control_signals.rd =/= 0
+  val ex_can_forward = !io.ex_control_signals.is_load && io.ex_valid
+  io.use_ex_src1 := raw_ex_src1 && ex_can_forward
+  io.use_ex_src2 := raw_ex_src2 && ex_can_forward
 
-  val mem_rd_x0 = io.mem_control_signals.rd === 0
-  val raw_mem_src1 = io.id2_control_signals.rs1 === io.mem_control_signals.rd && !mem_rd_x0
-  val raw_mem_src2 = io.id2_control_signals.rs2 === io.mem_control_signals.rd && !mem_rd_x0
+  val raw_mem_src1 = io.id2_control_signals.rs1 === io.mem_control_signals.rd && io.mem_control_signals.rd =/= 0
+  val raw_mem_src2 = io.id2_control_signals.rs2 === io.mem_control_signals.rd && io.mem_control_signals.rd =/= 0
+  val mem_can_forward = !io.mem_control_signals.is_load && io.mem_valid
+  io.use_mem_src1 := raw_mem_src1 && mem_can_forward
+  io.use_mem_src2 := raw_mem_src2 && mem_can_forward
 
-  val raw = (raw_ex_src1 | raw_ex_src2 | raw_mem_src1 | raw_mem_src2) & io.id2_valid
+  val raw = ((raw_ex_src1 | raw_ex_src2) & !ex_can_forward) | ((raw_mem_src1 | raw_mem_src2) & !mem_can_forward)
 
   val halt_if = !io.if_valid | io.id1_stall_if
   val halt_id1 = !io.id1_valid
@@ -154,18 +159,6 @@ case class HazardUnit() extends Component {
     }
   }
 
-  // TODO Enable forwarding
-  // TODO If a load instruction is on pipe, it can't be forwarded from MEM
-  // io.use_mem_src1 := io.ex_control_signals.rs1 === io.mem_control_signals.rd
-  // io.use_mem_src2 := io.ex_control_signals.rs2 === io.mem_control_signals.rd
-  // TODO Forward the WB result
-  // io.use_wb_src1 := io.ex_control_signals.rs1 === io.wb_control_signals.rd
-  // io.use_wb_src2 := io.ex_control_signals.rs2 === io.wb_control_signals.rd
-
-  io.use_mem_src1 := False
-  io.use_mem_src2 := False
-  io.use_wb_src1 := False
-  io.use_wb_src2 := False
 }
 
 object HazardUnit extends App {
