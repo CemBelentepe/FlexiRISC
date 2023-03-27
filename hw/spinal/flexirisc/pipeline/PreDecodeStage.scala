@@ -24,8 +24,8 @@ case class Id1Id2() extends Component {
     val id1_funct3 = in Bits (3 bits)
     val id1_funct7 = in Bits (7 bits)
     val id1_immediate = in Bits (32 bits)
-    val id1_pc = in UInt (32 bits)
-    val id1_pc_next_seq = in UInt (32 bits)
+    val id1_pc = in UInt (64 bits)
+    val id1_pc_next_seq = in UInt (64 bits)
 
     val id2_instruction_dbg = out Bits(32 bits)
     val id2_opcode = out(OPCODE())
@@ -35,8 +35,8 @@ case class Id1Id2() extends Component {
     val id2_funct3 = out Bits (3 bits)
     val id2_funct7 = out Bits (7 bits)
     val id2_immediate = out Bits (32 bits)
-    val id2_pc = out UInt (32 bits)
-    val id2_pc_next_seq = out UInt (32 bits)
+    val id2_pc = out UInt (64 bits)
+    val id2_pc_next_seq = out UInt (64 bits)
   }
 
   val instruction_dbg = Reg(Bits(32 bits)) init (B"32'h00000013")
@@ -47,8 +47,8 @@ case class Id1Id2() extends Component {
   val funct3 = Reg(Bits(3 bits)) init (0)
   val funct7 = Reg(Bits(7 bits)) init (0)
   val immediate = Reg(Bits(32 bits)) init (0)
-  val pc = Reg(UInt(32 bits)) init (0)
-  val pc_next_seq = Reg(UInt(32 bits)) init (0)
+  val pc = Reg(UInt(64 bits)) init (0)
+  val pc_next_seq = Reg(UInt(64 bits)) init (0)
 
   when(io.id2_flush) {
     instruction_dbg := B"32'h00000013"
@@ -88,7 +88,8 @@ case class Id1Id2() extends Component {
 
 case class PreDecodeStage() extends Component {
   val io = new Bundle {
-    val instruction = in Bits (32 bits)
+    val pc = in UInt(64 bits)
+    val instruction = in Bits (64 bits)
     val inst_valid = in Bool()
 
     val opcode = out(OPCODE())
@@ -101,9 +102,12 @@ case class PreDecodeStage() extends Component {
 
     val stall_if = out Bool()
     val stage_valid = out Bool()
+
+    val instruction_dbg = out Bits (32 bits)
   }
 
-  val instruction = (!io.inst_valid) ? B"32'h00000013" | io.instruction
+  val instruction = (!io.inst_valid) ? B"32'h00000013" | io.instruction.subdivideIn(2 slices)(io.pc(2).asUInt)
+  io.instruction_dbg := instruction
   io.stage_valid := True
 
   // TODO stall_if is dependent on the step counter

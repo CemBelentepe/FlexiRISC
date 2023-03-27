@@ -8,8 +8,8 @@ import scala.language.postfixOps
 
 case class Core() extends Component {
   val io = new Bundle {
-    val inst_mem = master(MemoryPort(32, 32))
-    val data_mem = master(MemoryPort(32, 32))
+    val inst_mem = master(MemoryPort(64, 64))
+    val data_mem = master(MemoryPort(64, 64))
   }
 
   val hazardUnit = HazardUnit()
@@ -21,8 +21,8 @@ case class Core() extends Component {
   val memStage = MemoryStage()
   val wbStage = WriteBackStage()
 
-  val ifLoad = StoreLoadUnit(32, 32)
-  val memLoad = StoreLoadUnit(32, 32)
+  val ifLoad = StoreLoadUnit(64, 64, BigInt("0000001300000013", 16))
+  val memLoad = StoreLoadUnit(64, 64, 0)
 
   val ifid1 = IfId1()
   val id1id2 = Id1Id2()
@@ -48,7 +48,7 @@ case class Core() extends Component {
   // IF Load
   ifLoad.io.address := ifStage.io.pc
   ifLoad.io.request := ifStage.io.request
-  ifLoad.io.write_mask := B"4'b0000"
+  ifLoad.io.write_mask := B"8'b00000000"
   ifLoad.io.write_data := 0
   ifLoad.io.flush := hazardUnit.io.id1_flush
 
@@ -65,13 +65,14 @@ case class Core() extends Component {
   ifid1.io.if_pc_next_seq := ifStage.io.pc_next_seq
 
   // ID1
+  id1Stage.io.pc := ifid1.io.id1_pc
   id1Stage.io.instruction := ifLoad.io.data
   id1Stage.io.inst_valid := ifLoad.io.valid
 
   id1id2.io.id2_stall := hazardUnit.io.id2_stall
   id1id2.io.id2_flush := hazardUnit.io.id2_flush
 
-  id1id2.io.id1_instruction_dbg := ifLoad.io.data
+  id1id2.io.id1_instruction_dbg := id1Stage.io.instruction_dbg
   id1id2.io.id1_opcode := id1Stage.io.opcode
   id1id2.io.id1_rs1 := id1Stage.io.rs1
   id1id2.io.id1_rs2 := id1Stage.io.rs2

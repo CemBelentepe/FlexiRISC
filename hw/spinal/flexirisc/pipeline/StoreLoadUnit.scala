@@ -7,7 +7,7 @@ import spinal.lib._
 
 import scala.language.postfixOps
 
-case class StoreLoadUnit (addressWidth: Int, dataWidth: Int) extends Component {
+case class StoreLoadUnit (addressWidth: Int, dataWidth: Int, flushData: BigInt) extends Component {
   val io = new Bundle {
     val flush = in Bool()
     val stall = in Bool()
@@ -24,7 +24,7 @@ case class StoreLoadUnit (addressWidth: Int, dataWidth: Int) extends Component {
   }
 
   val reg_address = RegNextWhen(io.address, io.request) init(0)
-  val reg_data = RegNextWhen(io.mem_port.response, io.valid) init(B"32'h00000013")
+  val reg_data = RegNextWhen(io.mem_port.response, io.valid) init(flushData)
   val reg_valid = RegNext(io.mem_port.valid) init(False)
   val reg_request_1d = RegNext(io.request) init(False)
   val reg_flush_1d = RegNext(io.flush)
@@ -41,7 +41,7 @@ case class StoreLoadUnit (addressWidth: Int, dataWidth: Int) extends Component {
 
   when(io.flush) {
     reg_address := 0
-    reg_data := B"32'h00000013"
+    reg_data := flushData
     reg_valid := True
     reg_request_1d := False
   }

@@ -12,17 +12,17 @@ case class ExMem() extends Component {
     val mem_flush = in Bool()
 
     val ex_control_signals = in(ControlSignals())
-    val ex_result = in Bits(32 bits)
-    val ex_src2 = in Bits(32 bits)
+    val ex_result = in Bits(64 bits)
+    val ex_src2 = in Bits(64 bits)
 
     val mem_control_signals = out(ControlSignals())
-    val mem_result = out Bits(32 bits)
-    val mem_src2 = out Bits(32 bits)
+    val mem_result = out Bits(64 bits)
+    val mem_src2 = out Bits(64 bits)
   }
 
   val control_signals = Reg(ControlSignals()) init(DecodeStage.default_control())
-  val result = Reg(Bits(32 bits)) init(0)
-  val src2 = Reg(Bits(32 bits)) init(0)
+  val result = Reg(Bits(64 bits)) init(0)
+  val src2 = Reg(Bits(64 bits)) init(0)
 
   when(io.mem_flush) {
     control_signals := DecodeStage.default_control()
@@ -43,19 +43,21 @@ case class ExecuteStage() extends Component {
   val io = new Bundle{
     val control_signals = in(ControlSignals())
 
-    val pc = in UInt(32 bits)
-    val pc_next_seq = in UInt(32 bits)
-    val id_src1 = in Bits(32 bits)
-    val id_src2 = in Bits(32 bits)
+    val pc = in UInt(64 bits)
+    val pc_next_seq = in UInt(64 bits)
+    val id_src1 = in Bits(64 bits)
+    val id_src2 = in Bits(64 bits)
     val immediate = in Bits(32 bits)
 
-    val result = out Bits(32 bits)
+    val result = out Bits(64 bits)
     val jump_enable = out Bool()
-    val jump_address = out UInt(32 bits)
-    val src2 = out Bits(32 bits)
+    val jump_address = out UInt(64 bits)
+    val src2 = out Bits(64 bits)
 
     val stage_valid = out Bool()
   }
+
+  val immediate = io.immediate.asSInt.resize(64 bits)
 
   val src1 = io.id_src1
   val src2 = io.id_src2
@@ -67,13 +69,13 @@ case class ExecuteStage() extends Component {
   )
 
   val alu_rhs = io.control_signals.sel_add_rhs.mux(
-    SEL_RHS.IMM -> io.immediate.asUInt,
+    SEL_RHS.IMM -> immediate.asUInt,
     SEL_RHS.SRC2 -> src2.asUInt
   )
 
-  val adder = new CarrySelectAdder(32, 8)
+  val adder = new CarrySelectAdder(64, 8)
   adder.io.lhs := alu_lhs
-  adder.io.rhs := (alu_rhs.asBits ^ B(32 bits, default -> io.control_signals.is_sub)).asUInt
+  adder.io.rhs := (alu_rhs.asBits ^ B(64 bits, default -> io.control_signals.is_sub)).asUInt
   adder.io.c_in := io.control_signals.is_sub
 
   val add_res = adder.io.res
@@ -81,7 +83,7 @@ case class ExecuteStage() extends Component {
   val comparator = new Area {
     val lhs = src1.asBits
     val rhs = io.control_signals.sel_comp_rhs.mux(
-      SEL_RHS.IMM -> io.immediate.asBits,
+      SEL_RHS.IMM -> immediate.asBits,
       SEL_RHS.SRC2 -> src2.asBits
     )
 
@@ -112,8 +114,8 @@ case class ExecuteStage() extends Component {
     val rs_changed = (reg_rs1_1d =/= io.control_signals.rs1) | (reg_rs2_1d =/= io.control_signals.rs2)
 
     val mulArea = new Area {
-      val mulUnit = new Multiplier(32)
-      val mul_res = Bits(32 bits)
+      val mulUnit = new Multiplier(64)
+      val mul_res = Bits(64 bits)
       val is_neg_res = False
       val sgn_res = (is_neg_res ? (-mulUnit.io.result.asSInt).asUInt | mulUnit.io.result).asBits
 
@@ -125,32 +127,32 @@ case class ExecuteStage() extends Component {
           mulUnit.io.lhs := sgn_lhs
           mulUnit.io.rhs := sgn_rhs
           is_neg_res := is_neg_lhs ^ is_neg_rhs
-          mul_res := sgn_res(31 downto 0)
+          mul_res := sgn_res(63 downto 0)
         }
         is(1) {
           mulUnit.io.lhs := sgn_lhs
           mulUnit.io.rhs := sgn_rhs
           is_neg_res := is_neg_lhs ^ is_neg_rhs
-          mul_res := sgn_res(63 downto 32)
+          mul_res := sgn_res(127 downto 64)
         }
         is(2) {
           mulUnit.io.lhs := sgn_lhs
           mulUnit.io.rhs := src2.asUInt
           is_neg_res := is_neg_lhs
-          mul_res := sgn_res(63 downto 32)
+          mul_res := sgn_res(127 downto 64)
         }
         is(3) {
           mulUnit.io.lhs := src1.asUInt
           mulUnit.io.rhs := src2.asUInt
-          mul_res := mulUnit.io.result(63 downto 32).asBits
+          mul_res := mulUnit.io.result(127 downto 64).asBits
         }
       }
 
     }
 
     val divArea = new Area {
-      val divUnit = new Divider(32)
-      val div_res = Bits(32 bits)
+      val divUnit = new Divider(64)
+      val div_res = Bits(64 bits)
       divUnit.io.start := rs_changed | (alu_1d(0) =/= io.control_signals.alu_op(0))
 
       switch(io.control_signals.alu_op(1 downto 0)){
@@ -185,12 +187,12 @@ case class ExecuteStage() extends Component {
   // TODO if jump is to the next instr, do not flush
   io.jump_enable := (io.control_signals.is_jump | (io.control_signals.is_branch & comparator.res))
   val alu_res = io.control_signals.alu_op.mux(
-    0 -> add_res.asBits.resize(32 bits),
-    1 -> (alu_lhs.asBits |<< alu_rhs(4 downto 0)).asBits,
-    2 -> comparator.lt.asBits(32 bits),
-    3 -> comparator.ltu.asBits(32 bits),
+    0 -> add_res.asBits.resize(64 bits),
+    1 -> (alu_lhs.asBits |<< alu_rhs(5 downto 0)).asBits,
+    2 -> comparator.lt.asBits(64 bits),
+    3 -> comparator.ltu.asBits(64 bits),
     4 -> (alu_lhs ^ alu_rhs).asBits,
-    5 -> (io.control_signals.is_arth_shift ? (alu_lhs.asSInt >> alu_rhs(4 downto 0)).asBits | (alu_lhs |>> alu_rhs(4 downto 0)).asBits),
+    5 -> (io.control_signals.is_arth_shift ? (alu_lhs.asSInt >> alu_rhs(5 downto 0)).asBits | (alu_lhs |>> alu_rhs(5 downto 0)).asBits),
     6 -> (alu_lhs | alu_rhs).asBits,
     7 -> (alu_lhs & alu_rhs).asBits
   )

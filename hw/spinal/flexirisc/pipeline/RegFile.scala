@@ -10,10 +10,10 @@ case class RegFile() extends Component {
     val rs1 = in UInt(5 bits)
     val rs2 = in UInt(5 bits)
     val rd = in UInt(5 bits)
-    val write_data = in Bits(32 bits)
+    val write_data = in Bits(64 bits)
 
-    val src1 = out Bits(32 bits)
-    val src2 = out Bits(32 bits)
+    val src1 = out Bits(64 bits)
+    val src2 = out Bits(64 bits)
   }
 
 
@@ -27,7 +27,7 @@ case class RegFile() extends Component {
         resetActiveLevel = HIGH
       ))) {
 
-    val regFile = Mem(Bits(32 bits), 32)
+    val regFile = Mem(Bits(64 bits), 32)
 
     regFile.write(
       io.rd,

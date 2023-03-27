@@ -48,28 +48,28 @@ case class IdEx() extends Component {
 
     val id2_instruction_dbg = in Bits (32 bits)
     val id2_control_signals = in(ControlSignals())
-    val id2_src1 = in Bits(32 bits)
-    val id2_src2 = in Bits(32 bits)
+    val id2_src1 = in Bits(64 bits)
+    val id2_src2 = in Bits(64 bits)
     val id2_immediate = in Bits(32 bits)
-    val id2_pc = in UInt(32 bits)
-    val id2_pc_next_seq = in UInt(32 bits)
+    val id2_pc = in UInt(64 bits)
+    val id2_pc_next_seq = in UInt(64 bits)
 
     val ex_instruction_dbg = out Bits (32 bits)
     val ex_control_signals = out(ControlSignals())
-    val ex_src1 = out Bits (32 bits)
-    val ex_src2 = out Bits (32 bits)
+    val ex_src1 = out Bits (64 bits)
+    val ex_src2 = out Bits (64 bits)
     val ex_immediate = out Bits (32 bits)
-    val ex_pc = out UInt(32 bits)
-    val ex_pc_next_seq = out UInt (32 bits)
+    val ex_pc = out UInt(64 bits)
+    val ex_pc_next_seq = out UInt (64 bits)
   }
 
   val instruction_dbg = Reg(Bits(32 bits)) init (0)
   val control_signals = Reg(ControlSignals()) init(DecodeStage.default_control())
-  val src1 = Reg(Bits (32 bits)) init(0)
-  val src2 = Reg(Bits (32 bits)) init(0)
+  val src1 = Reg(Bits (64 bits)) init(0)
+  val src2 = Reg(Bits (64 bits)) init(0)
   val immediate = Reg(Bits (32 bits)) init(0)
-  val pc = Reg(UInt (32 bits)) init(0)
-  val pc_next_seq = Reg(UInt (32 bits)) init(0)
+  val pc = Reg(UInt (64 bits)) init(0)
+  val pc_next_seq = Reg(UInt (64 bits)) init(0)
 
   when(io.ex_flush){
     instruction_dbg := B"32'h00000013"
@@ -108,10 +108,10 @@ case class DecodeStage() extends Component {
     val funct7 = in Bits(7 bits)
 
     val wb_rd = in UInt(5 bits)
-    val wb_data = in Bits(32 bits)
+    val wb_data = in Bits(64 bits)
 
-    val ex_result = in Bits(32 bits)
-    val mem_result = in Bits(32 bits)
+    val ex_result = in Bits(64 bits)
+    val mem_result = in Bits(64 bits)
 
     val use_ex_src1 = in Bool()
     val use_ex_src2 = in Bool()
@@ -120,8 +120,8 @@ case class DecodeStage() extends Component {
 
     val control_signals = out(ControlSignals())
 
-    val src1 = out Bits(32 bits)
-    val src2 = out Bits(32 bits)
+    val src1 = out Bits(64 bits)
+    val src2 = out Bits(64 bits)
   }
 
   val regFile = new RegFile()
