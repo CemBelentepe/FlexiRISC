@@ -49,13 +49,6 @@ case class ExecuteStage() extends Component {
     val id_src2 = in Bits(32 bits)
     val immediate = in Bits(32 bits)
 
-    val mem_res = in Bits(32 bits)
-    val wb_res = in Bits(32 bits)
-    val use_mem_src1 = in Bool()
-    val use_mem_src2 = in Bool()
-    val use_wb_src1 = in Bool()
-    val use_wb_src2 = in Bool()
-
     val result = out Bits(32 bits)
     val jump_enable = out Bool()
     val jump_address = out UInt(32 bits)
@@ -64,21 +57,8 @@ case class ExecuteStage() extends Component {
     val stage_valid = out Bool()
   }
 
-  val src1 = Bits(32 bits)
-  src1 := io.id_src1
-  when(io.use_mem_src1){
-    src1 := io.mem_res
-  }.elsewhen(io.use_wb_src1){
-    src1 := io.wb_res
-  }
-
-  val src2 = Bits(32 bits)
-  src2 := io.id_src2
-  when(io.use_mem_src2) {
-    src2 := io.mem_res
-  }.elsewhen(io.use_wb_src2) {
-    src2 := io.wb_res
-  }
+  val src1 = io.id_src1
+  val src2 = io.id_src2
   io.src2 := src2
 
   val alu_lhs = io.control_signals.sel_add_lhs.mux(

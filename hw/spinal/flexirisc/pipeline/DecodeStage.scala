@@ -110,6 +110,14 @@ case class DecodeStage() extends Component {
     val wb_rd = in UInt(5 bits)
     val wb_data = in Bits(32 bits)
 
+    val ex_result = in Bits(32 bits)
+    val mem_result = in Bits(32 bits)
+
+    val use_ex_src1 = in Bool()
+    val use_ex_src2 = in Bool()
+    val use_mem_src1 = in Bool()
+    val use_mem_src2 = in Bool()
+
     val control_signals = out(ControlSignals())
 
     val src1 = out Bits(32 bits)
@@ -120,10 +128,21 @@ case class DecodeStage() extends Component {
   regFile.io.rs1 := io.control_signals.rs1
   regFile.io.rs2 := io.control_signals.rs2
   regFile.io.rd := io.wb_rd
-  io.src1 := regFile.io.src1
-  io.src2 := regFile.io.src2
   regFile.io.write_data := io.wb_data
 
+  io.src1 := regFile.io.src1
+  when(io.use_ex_src1){
+    io.src1 := io.ex_result
+  }.elsewhen(io.use_mem_src1){
+    io.src1 := io.mem_result
+  }
+
+  io.src2 := regFile.io.src2
+  when(io.use_ex_src2) {
+    io.src2 := io.ex_result
+  }.elsewhen(io.use_mem_src2) {
+    io.src2 := io.mem_result
+  }
 
   io.control_signals := DecodeStage.default_control()
 

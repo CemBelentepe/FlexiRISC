@@ -93,6 +93,14 @@ case class Core() extends Component {
   id2Stage.io.wb_rd := wbStage.io.rd
   id2Stage.io.wb_data := wbStage.io.data
 
+  id2Stage.io.ex_result := exStage.io.result
+  id2Stage.io.mem_result := memStage.io.result_data
+
+  id2Stage.io.use_ex_src1 := hazardUnit.io.use_ex_src1
+  id2Stage.io.use_ex_src2 := hazardUnit.io.use_ex_src2
+  id2Stage.io.use_mem_src1 := hazardUnit.io.use_mem_src1
+  id2Stage.io.use_mem_src2 := hazardUnit.io.use_mem_src2
+
   idex.io.ex_stall := hazardUnit.io.ex_stall
   idex.io.ex_flush := hazardUnit.io.ex_flush
 
@@ -111,13 +119,6 @@ case class Core() extends Component {
   exStage.io.id_src1 := idex.io.ex_src1
   exStage.io.id_src2 := idex.io.ex_src2
   exStage.io.immediate := idex.io.ex_immediate
-  exStage.io.mem_res := exmem.io.mem_result
-  exStage.io.wb_res := wbStage.io.data
-
-  exStage.io.use_mem_src1 := hazardUnit.io.use_mem_src1
-  exStage.io.use_mem_src2 := hazardUnit.io.use_mem_src2
-  exStage.io.use_wb_src1 := hazardUnit.io.use_wb_src1
-  exStage.io.use_wb_src2 := hazardUnit.io.use_wb_src2
 
   exmem.io.mem_flush := hazardUnit.io.mem_flush
   exmem.io.mem_stall := hazardUnit.io.mem_stall
