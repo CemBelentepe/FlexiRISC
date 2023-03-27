@@ -48,12 +48,12 @@ object FlexiRiscTest {
     val max_sim_time = 100000
 
     SimConfig.withWave.compile {
-      val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/muldiv/muldiv.data")
+      val dut = new FlexiRisc("/home/pro/Documents/GitHub/FlexiRISC/test/bubble_sort/bubble_sort.data")
       dut.io.simPublic()
       dut
     }.doSim { dut =>
       //Simulation code here
-      dut.clockDomain.forkStimulus(20000)
+      dut.clockDomain.forkStimulus(16000)
       var sim_time = 0
       while(!dut.io.done.toBoolean && sim_time < max_sim_time) {
         dut.clockDomain.waitRisingEdge()

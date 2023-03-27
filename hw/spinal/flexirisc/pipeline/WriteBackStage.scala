@@ -11,12 +11,16 @@ case class WriteBackStage() extends Component{
 
     val wb_load_data = in Bits(32 bits)
     val wb_result_data = in Bits(32 bits)
+    val wb_load_valid = in Bool()
 
     val data = out Bits(32 bits)
     val rd = out UInt(5 bits)
+
+    val stage_valid = out Bool()
   }
 
   io.rd := io.control_signals.rd
+  io.stage_valid := io.control_signals.is_load? io.wb_load_valid | (True)
 
   when(io.control_signals.is_load) {
     io.data := io.control_signals.funct3.mux(

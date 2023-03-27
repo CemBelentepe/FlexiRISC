@@ -126,35 +126,38 @@ case class ExecuteStage() extends Component {
 
     val reg_rs1_1d = RegNext(io.control_signals.rs1)
     val reg_rs2_1d = RegNext(io.control_signals.rs2)
+    val alu_1d = RegNext(io.control_signals.alu_op)
 
-    val start = (reg_rs1_1d =/= io.control_signals.rs1) | (reg_rs2_1d =/= io.control_signals.rs2)
+    // TODO IF rs1 and rs2 are same as 1d, and mul was also active 1d ago, do not start
+    val rs_changed = (reg_rs1_1d =/= io.control_signals.rs1) | (reg_rs2_1d =/= io.control_signals.rs2)
 
     val mulArea = new Area {
       val mulUnit = new Multiplier(32)
       val mul_res = Bits(32 bits)
       val is_neg_res = False
-      val neg_res_h = (is_neg_res ? (-mulUnit.io.result.asSInt).asUInt(63 downto 32) | mulUnit.io.result(63 downto 32)).asBits
+      val sgn_res = (is_neg_res ? (-mulUnit.io.result.asSInt).asUInt | mulUnit.io.result).asBits
 
-      mulUnit.io.start := start
+      mulUnit.io.start := rs_changed | !(alu_1d(1) === False & io.control_signals.alu_op(1) === False)
       mulUnit.io.enabled := True
 
       switch(io.control_signals.alu_op(1 downto 0)) {
         is(0) {
-          mulUnit.io.lhs := src1.asUInt
-          mulUnit.io.rhs := src2.asUInt
-          mul_res := mulUnit.io.result(31 downto 0).asBits
+          mulUnit.io.lhs := sgn_lhs
+          mulUnit.io.rhs := sgn_rhs
+          is_neg_res := is_neg_lhs ^ is_neg_rhs
+          mul_res := sgn_res(31 downto 0)
         }
         is(1) {
           mulUnit.io.lhs := sgn_lhs
           mulUnit.io.rhs := sgn_rhs
           is_neg_res := is_neg_lhs ^ is_neg_rhs
-          mul_res := neg_res_h
+          mul_res := sgn_res(63 downto 32)
         }
         is(2) {
           mulUnit.io.lhs := sgn_lhs
           mulUnit.io.rhs := src2.asUInt
           is_neg_res := is_neg_lhs
-          mul_res := neg_res_h
+          mul_res := sgn_res(63 downto 32)
         }
         is(3) {
           mulUnit.io.lhs := src1.asUInt
@@ -168,7 +171,7 @@ case class ExecuteStage() extends Component {
     val divArea = new Area {
       val divUnit = new Divider(32)
       val div_res = Bits(32 bits)
-      divUnit.io.start := start
+      divUnit.io.start := rs_changed | (alu_1d(0) =/= io.control_signals.alu_op(0))
 
       switch(io.control_signals.alu_op(1 downto 0)){
         is(0){
