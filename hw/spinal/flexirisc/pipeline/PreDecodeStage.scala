@@ -16,7 +16,7 @@ case class Id1Id2() extends Component {
     val id2_stall = in Bool ()
     val id2_flush = in Bool ()
 
-    val id1_instruction_dbg = in Bits(32 bits)
+    val id1_instruction_dbg = in Bits (32 bits)
     val id1_opcode = in(OPCODE())
     val id1_rs1 = in UInt (5 bits)
     val id1_rs2 = in UInt (5 bits)
@@ -24,10 +24,11 @@ case class Id1Id2() extends Component {
     val id1_funct3 = in Bits (3 bits)
     val id1_funct7 = in Bits (7 bits)
     val id1_immediate = in Bits (32 bits)
+    val id1_is_w = in Bool ()
     val id1_pc = in UInt (64 bits)
     val id1_pc_next_seq = in UInt (64 bits)
 
-    val id2_instruction_dbg = out Bits(32 bits)
+    val id2_instruction_dbg = out Bits (32 bits)
     val id2_opcode = out(OPCODE())
     val id2_rs1 = out UInt (5 bits)
     val id2_rs2 = out UInt (5 bits)
@@ -35,6 +36,7 @@ case class Id1Id2() extends Component {
     val id2_funct3 = out Bits (3 bits)
     val id2_funct7 = out Bits (7 bits)
     val id2_immediate = out Bits (32 bits)
+    val id2_is_w = out Bool ()
     val id2_pc = out UInt (64 bits)
     val id2_pc_next_seq = out UInt (64 bits)
   }
@@ -47,6 +49,7 @@ case class Id1Id2() extends Component {
   val funct3 = Reg(Bits(3 bits)) init (0)
   val funct7 = Reg(Bits(7 bits)) init (0)
   val immediate = Reg(Bits(32 bits)) init (0)
+  val is_w = Reg(Bool()) init (False)
   val pc = Reg(UInt(64 bits)) init (0)
   val pc_next_seq = Reg(UInt(64 bits)) init (0)
 
@@ -61,6 +64,7 @@ case class Id1Id2() extends Component {
     immediate := 0
     pc := 0
     pc_next_seq := 0
+    is_w := False
   }.elsewhen(!io.id2_stall) {
     instruction_dbg := io.id1_instruction_dbg
     opcode := io.id1_opcode
@@ -70,6 +74,7 @@ case class Id1Id2() extends Component {
     funct3 := io.id1_funct3
     funct7 := io.id1_funct7
     immediate := io.id1_immediate
+    is_w := io.id1_is_w
     pc := io.id1_pc
     pc_next_seq := io.id1_pc_next_seq
   }
@@ -82,26 +87,28 @@ case class Id1Id2() extends Component {
   io.id2_funct3 := funct3
   io.id2_funct7 := funct7
   io.id2_immediate := immediate
+  io.id2_is_w := is_w
   io.id2_pc := pc
   io.id2_pc_next_seq := pc_next_seq
 }
 
 case class PreDecodeStage() extends Component {
   val io = new Bundle {
-    val pc = in UInt(64 bits)
+    val pc = in UInt (64 bits)
     val instruction = in Bits (64 bits)
-    val inst_valid = in Bool()
+    val inst_valid = in Bool ()
 
     val opcode = out(OPCODE())
-    val rs1 = out UInt(5 bits)
-    val rs2 = out UInt(5 bits)
-    val rd = out UInt(5 bits)
-    val funct3 = out Bits(3 bits)
-    val funct7 = out Bits(7 bits)
-    val immediate = out Bits(32 bits)
+    val rs1 = out UInt (5 bits)
+    val rs2 = out UInt (5 bits)
+    val rd = out UInt (5 bits)
+    val funct3 = out Bits (3 bits)
+    val funct7 = out Bits (7 bits)
+    val immediate = out Bits (32 bits)
+    val is_w = out Bool ()
 
-    val stall_if = out Bool()
-    val stage_valid = out Bool()
+    val stall_if = out Bool ()
+    val stage_valid = out Bool ()
 
     val instruction_dbg = out Bits (32 bits)
   }
@@ -128,6 +135,8 @@ case class PreDecodeStage() extends Component {
         B"5'b01000" -> OPCODE.STORE.asData,
         B"5'b00100" -> OPCODE.OP_IMM.asData,
         B"5'b01100" -> OPCODE.OP.asData,
+        B"5'b00110" -> OPCODE.OP_IMM.asData,
+        B"5'b01110" -> OPCODE.OP.asData,
         default -> OPCODE.OP.asData
       )
 
@@ -140,7 +149,15 @@ case class PreDecodeStage() extends Component {
         B"5'b00000" -> immediateDecoder.io.i_imm,
         B"5'b01000" -> immediateDecoder.io.s_imm,
         B"5'b00100" -> immediateDecoder.io.i_imm,
+        B"5'b00110" -> immediateDecoder.io.i_imm,
         default -> B(0)
+      )
+
+    io.is_w := instruction(6 downto 2)
+      .mux(
+        B"5'b00110" -> True,
+        B"5'b01110" -> True,
+        default -> False
       )
 
     io.rs1 := instruction(19 downto 15).asUInt
@@ -152,6 +169,7 @@ case class PreDecodeStage() extends Component {
     // TODO Decode the RV32c here
     io.opcode := OPCODE.OP
     io.immediate := 0
+    io.is_w := False
 
     io.rs1 := 0
     io.rs2 := 0
@@ -164,13 +182,13 @@ case class PreDecodeStage() extends Component {
 
 case class ImmediateDecoder() extends Component {
   val io = new Bundle {
-    val instruction = in Bits(32 bits)
+    val instruction = in Bits (32 bits)
 
-    val i_imm = out Bits(32 bits)
-    val s_imm = out Bits(32 bits)
-    val b_imm = out Bits(32 bits)
-    val u_imm = out Bits(32 bits)
-    val j_imm = out Bits(32 bits)
+    val i_imm = out Bits (32 bits)
+    val s_imm = out Bits (32 bits)
+    val b_imm = out Bits (32 bits)
+    val u_imm = out Bits (32 bits)
+    val j_imm = out Bits (32 bits)
   }
 
   io.i_imm := B(

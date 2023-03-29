@@ -101,10 +101,13 @@ case class ExecuteStage() extends Component {
   val muldiv = new Area {
     val is_mul = ~io.control_signals.alu_op(2)
 
-    val is_neg_lhs = src1.msb
-    val is_neg_rhs = src2.msb
-    val sgn_lhs = is_neg_lhs ? (-src1.asSInt).asUInt | src1.asUInt
-    val sgn_rhs = is_neg_rhs ? (-src2.asSInt).asUInt | src2.asUInt
+    val lhs = (io.control_signals.is_w ? src1(31 downto 0).asSInt.resize(64 bits).asBits | src1).asUInt
+    val rhs = (io.control_signals.is_w ? src2(31 downto 0).asSInt.resize(64 bits).asBits | src2).asUInt
+
+    val is_neg_lhs = lhs.msb
+    val is_neg_rhs = rhs.msb
+    val sgn_lhs = is_neg_lhs ? (-lhs.asSInt).asUInt | lhs
+    val sgn_rhs = is_neg_rhs ? (-rhs.asSInt).asUInt | rhs
 
     val reg_rs1_1d = RegNext(io.control_signals.rs1)
     val reg_rs2_1d = RegNext(io.control_signals.rs2)
@@ -137,13 +140,13 @@ case class ExecuteStage() extends Component {
         }
         is(2) {
           mulUnit.io.lhs := sgn_lhs
-          mulUnit.io.rhs := src2.asUInt
+          mulUnit.io.rhs := rhs
           is_neg_res := is_neg_lhs
           mul_res := sgn_res(127 downto 64)
         }
         is(3) {
-          mulUnit.io.lhs := src1.asUInt
-          mulUnit.io.rhs := src2.asUInt
+          mulUnit.io.lhs := lhs
+          mulUnit.io.rhs := rhs
           mul_res := mulUnit.io.result(127 downto 64).asBits
         }
       }
@@ -153,7 +156,8 @@ case class ExecuteStage() extends Component {
     val divArea = new Area {
       val divUnit = new Divider(64)
       val div_res = Bits(64 bits)
-      divUnit.io.start := rs_changed | (alu_1d(0) =/= io.control_signals.alu_op(0))
+      val reg_is_w_1d = RegNext(io.control_signals.is_w)
+      divUnit.io.start := rs_changed | (alu_1d(0) =/= io.control_signals.alu_op(0)) | (reg_is_w_1d =/= io.control_signals.is_w)
 
       switch(io.control_signals.alu_op(1 downto 0)){
         is(0){
@@ -162,8 +166,8 @@ case class ExecuteStage() extends Component {
           div_res := (is_neg_lhs ^ is_neg_rhs) ? (-divUnit.io.div.asSInt).asBits | divUnit.io.div
         }
         is(1) {
-          divUnit.io.lhs := src1.asUInt
-          divUnit.io.rhs := src2.asUInt
+          divUnit.io.lhs := lhs
+          divUnit.io.rhs := rhs
           div_res := divUnit.io.div
         }
         is(2) {
@@ -172,8 +176,8 @@ case class ExecuteStage() extends Component {
           div_res := (is_neg_lhs ^ is_neg_rhs) ? (-divUnit.io.rem.asSInt).asBits | divUnit.io.rem
         }
         is(3) {
-          divUnit.io.lhs := src1.asUInt
-          divUnit.io.rhs := src2.asUInt
+          divUnit.io.lhs := lhs
+          divUnit.io.rhs := rhs
           div_res := divUnit.io.rem
         }
       }
@@ -186,19 +190,21 @@ case class ExecuteStage() extends Component {
 
   // TODO if jump is to the next instr, do not flush
   io.jump_enable := (io.control_signals.is_jump | (io.control_signals.is_branch & comparator.res))
-  val alu_res = io.control_signals.alu_op.mux(
+  val shamt = (io.control_signals.is_w ? alu_rhs(4 downto 0) | alu_rhs(5 downto 0))
+  val i_alu_res = io.control_signals.alu_op.mux(
     0 -> add_res.asBits.resize(64 bits),
     1 -> (alu_lhs.asBits |<< alu_rhs(5 downto 0)).asBits,
     2 -> comparator.lt.asBits(64 bits),
     3 -> comparator.ltu.asBits(64 bits),
     4 -> (alu_lhs ^ alu_rhs).asBits,
-    5 -> (io.control_signals.is_arth_shift ? (alu_lhs.asSInt >> alu_rhs(5 downto 0)).asBits | (alu_lhs |>> alu_rhs(5 downto 0)).asBits),
+    5 -> (io.control_signals.is_arth_shift ? (alu_lhs.asSInt >> shamt).asBits | (alu_lhs |>> shamt).asBits),
     6 -> (alu_lhs | alu_rhs).asBits,
     7 -> (alu_lhs & alu_rhs).asBits
   )
 
+  val alu_res = io.control_signals.is_muldiv ? muldiv.res | i_alu_res
   io.result := io.control_signals.sel_alu_res.mux(
-    SEL_RES.ALU -> (io.control_signals.is_muldiv ? muldiv.res | alu_res),
+    SEL_RES.ALU -> (io.control_signals.is_w ? alu_res(31 downto 0).asSInt.resize(64 bits).asBits | alu_res),
     SEL_RES.PC -> io.pc_next_seq.asBits
   )
 

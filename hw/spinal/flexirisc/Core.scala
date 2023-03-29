@@ -80,6 +80,7 @@ case class Core() extends Component {
   id1id2.io.id1_funct3 := id1Stage.io.funct3
   id1id2.io.id1_funct7 := id1Stage.io.funct7
   id1id2.io.id1_immediate := id1Stage.io.immediate
+  id1id2.io.id1_is_w := id1Stage.io.is_w
   id1id2.io.id1_pc := ifid1.io.id1_pc
   id1id2.io.id1_pc_next_seq := ifid1.io.id1_pc_next_seq
 
@@ -90,6 +91,7 @@ case class Core() extends Component {
   id2Stage.io.rd := id1id2.io.id2_rd
   id2Stage.io.funct3 := id1id2.io.id2_funct3
   id2Stage.io.funct7 := id1id2.io.id2_funct7
+  id2Stage.io.is_w := id1id2.io.id2_is_w
 
   id2Stage.io.wb_rd := wbStage.io.rd
   id2Stage.io.wb_data := wbStage.io.data

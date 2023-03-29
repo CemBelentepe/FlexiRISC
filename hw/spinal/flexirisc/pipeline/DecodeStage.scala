@@ -28,6 +28,7 @@ case class ControlSignals() extends Bundle {
   val is_arth_shift = Bool()
   val is_sub = Bool()
   val is_muldiv = Bool()
+  val is_w = Bool()
   val sel_comp_rhs = SEL_RHS()
   val comp_op = Bits(3 bits)
   val is_jump = Bool()
@@ -106,6 +107,7 @@ case class DecodeStage() extends Component {
     val rd = in UInt(5 bits)
     val funct3 = in Bits(3 bits)
     val funct7 = in Bits(7 bits)
+    val is_w = in Bool()
 
     val wb_rd = in UInt(5 bits)
     val wb_data = in Bits(64 bits)
@@ -145,7 +147,8 @@ case class DecodeStage() extends Component {
   }
 
   io.control_signals := DecodeStage.default_control()
-
+  io.control_signals.is_w.allowOverride()
+  io.control_signals.is_w := io.is_w
   switch(io.opcode){
     is(OPCODE.LUI){
       io.control_signals.rd := io.rd
@@ -234,6 +237,7 @@ object DecodeStage extends App {
     control.is_arth_shift := False
     control.is_sub := False
     control.is_muldiv := False
+    control.is_w := False
     control.is_store := False
     control.is_load := False
     control.funct3 := 0
