@@ -20,7 +20,7 @@ int main(int argc, char *argv[])
 	len = ftell(infile);
 	fseek(infile, 0, SEEK_SET);
 
- 	if (fread(rom, 8, len/8, infile) != len/8)
+ 	if (fread(rom, 1, len, infile) != len)
 	{
 		printf("Assembled file read error!\n");
 		fclose(infile);
@@ -33,6 +33,8 @@ int main(int argc, char *argv[])
 
     //write the opcodes to the .data file. you should then use the readmemh command in your verilog testbench to load the opcodes to memory.
     outfile = fopen(file_name,"wb");
+    if(len%8 != 0)
+        len += 8-(len%8);
     for (int i = 0; i < len/8; i+=1)
     {
         sprintf(cmd,"%016lX",rom[i]);
